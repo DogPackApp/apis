@@ -1,0 +1,99 @@
+name: Marketplace-API-STG Pipeline
+
+on: 
+  push:
+    branches: [ staging ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-upload:
+    runs-on: [ marketplace-job-stg ]
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate unique artifact name
+        id: artifact_name
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          COMMIT_SHA_SHORT=$(git rev-parse --short HEAD)
+          UNIQUE_NAME="artifact_${TIMESTAMP}_${COMMIT_SHA_SHORT}"
+          echo "unique_name=$UNIQUE_NAME" >> $GITHUB_OUTPUT
+          echo "Artifact name: $UNIQUE_NAME"
+
+      - name: Create .env file from JSON secret
+        env:
+          ENV_JSON: ${{ secrets.ENV_STAGING }}
+        run: |
+          echo "$ENV_JSON" > config.json
+          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' config.json > .env
+          rm -f config.json
+
+#      - name: Restore confidential files
+#        run: |
+#          mkdir -p storage/app/public
+#
+#          echo "${{ secrets.NOTIFICATION_JSON }}" | base64 --decode > storage/app/public/dogpack-cf51fd3ee838.json
+#          chmod 777 storage/app/public/dogpack-cf51fd3ee838.json
+#
+#          echo "${{ secrets.GOOGLE_SERVICE_SECRET }}" | base64 --decode > storage/app/google-service-account.json
+#          chmod 777 storage/app/google-service-account.json
+
+      - name: Create zip artifact
+        run: |
+          aws s3 cp s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/appspec.yml .
+          aws s3 cp s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/beforeInstall .
+          aws s3 cp s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/applicationStart .
+
+          zip -r ${{ steps.artifact_name.outputs.unique_name }}.zip . -x "*.git*" "*.github*"
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp ${{ steps.artifact_name.outputs.unique_name }}.zip s3://${{ secrets.S3_BUCKET_staging }}/staging/marketplace-api-stg/
+
+
+      - name: Create Marketplace CodeDeploy deployment
+        id: deploy_marketplace
+        run: |
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name marketplace-api-stg \
+            --deployment-group-name marketplace-api-stg-dg \
+            --s3-location bucket=${{ secrets.S3_BUCKET_staging }},key=staging/marketplace-api-stg/${{ steps.artifact_name.outputs.unique_name }}.zip,bundleType=zip \
+            --region us-east-1 \
+            --description "Marketplace API STG deployment from GitHub Actions run $GITHUB_RUN_ID" \
+            --query 'deploymentId' \
+            --output text)
+
+          echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+
+      - name: Wait for Marketplace deployment
+        run: |
+          DEPLOYMENT_ID="${{ steps.deploy_marketplace.outputs.deployment_id }}"
+          echo "Waiting for marketplace deployment: $DEPLOYMENT_ID"
+
+          set +e
+          aws deploy wait deployment-successful \
+            --deployment-id $DEPLOYMENT_ID \
+            --region us-east-1
+          WAIT_EXIT_CODE=$?
+          set -e
+
+          if [ $WAIT_EXIT_CODE -eq 0 ]; then
+            echo "Marketplace deployment completed successfully!"
+          else
+            aws deploy get-deployment \
+              --deployment-id $DEPLOYMENT_ID \
+              --region us-east-1 \
+              --output json | jq -r '.deploymentInfo | "Status: \(.status)\nError Code: \(.errorInformation.code)\nError Message: \(.errorInformation.message)"'
+            exit 1
+          fi
+
+      - name: Clean up
+        run: |
+          rm -f ${{ steps.artifact_name.outputs.unique_name }}.zip
