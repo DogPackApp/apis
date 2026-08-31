@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   build-and-upload:
-    runs-on: [ marketplace-job-stg ]
+    runs-on: [ marketplace-api-stg ]
     environment: staging
 
     steps:
