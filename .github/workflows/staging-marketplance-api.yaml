@@ -17,6 +17,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+           # Run tests before creating .env so DB_* comes from phpunit.xml (sqlite :memory:)
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run tests
+        run: composer test
+
+      - name: Remove test dependencies from deploy artifact
+        run: rm -rf vendor
 
       - name: Generate unique artifact name
         id: artifact_name
