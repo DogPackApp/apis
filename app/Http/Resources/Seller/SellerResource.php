@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Resources\Marketplace\Seller;
+namespace App\Http\Resources\Seller;
 
-use App\Http\Resources\Marketplace\Store\StoreResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,7 +22,6 @@ class SellerResource extends JsonResource
             'email' => $this->email,
             'status' => $this->status,
             'twofa_enabled' => $this->twofa_enabled,
-            'store' =>  StoreResource::make($this->whenLoaded('store')),
             'updated_at' => ($this->updated_at instanceof \DateTimeInterface)
                 ? $this->updated_at->format('Y-m-d H:i:s')
                 : $this->updated_at,

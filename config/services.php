@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+    ],
+
+    'marketplace_fe_url' => env('MARKETPLACE_FE_URL'),
+    'website_url' => env('WEBSITE_URL'),
+    'website_assets_url' => env('WEBSITE_ASSETS_URL'),
+    'support_phone' => env('SUPPORT_PHONE'),
+    'DOGPACK_EMAIL' => env('DOGPACK_EMAIL'),
+
 ];
