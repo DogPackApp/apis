@@ -115,4 +115,9 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    'marketplace_from' => [
+        'address' => env('MARKETPLACE_MAIL_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+        'name' => env('MARKETPLACE_MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'Example')),
+    ],
+
 ];
