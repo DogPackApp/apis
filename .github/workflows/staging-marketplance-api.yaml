@@ -18,7 +18,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Restore Laravel Passport keys before running tests
+      # Restore Laravel Passport OAuth keys
       - name: Restore Passport OAuth keys
         env:
           PASSPORT_PRIVATE_KEY: ${{ secrets.PASSPORT_PRIVATE_KEY }}
@@ -32,15 +32,29 @@ jobs:
           chmod 600 storage/oauth-private.key
           chmod 600 storage/oauth-public.key
 
-          echo "Passport OAuth keys restored successfully"
+          echo "Passport OAuth keys restored"
 
-      # Run tests before creating .env so DB_* comes from phpunit.xml (sqlite :memory:)
+      # Create .env BEFORE tests
+      - name: Create .env file from JSON secret
+        env:
+          ENV_JSON: ${{ secrets.ENV_STAGING }}
+        run: |
+          echo "$ENV_JSON" > config.json
+          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' config.json > .env
+          rm -f config.json
+
+      # Install dependencies
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 
+      # Run tests
+      # APP_KEY_STAGING is explicitly supplied to Laravel during tests
       - name: Run tests
+        env:
+          APP_KEY: ${{ secrets.APP_KEY_STAGING }}
         run: composer test
 
+      # Remove test dependencies from deploy artifact
       - name: Remove test dependencies from deploy artifact
         run: rm -rf vendor
 
@@ -53,32 +67,14 @@ jobs:
           echo "unique_name=$UNIQUE_NAME" >> $GITHUB_OUTPUT
           echo "Artifact name: $UNIQUE_NAME"
 
-      - name: Create .env file from JSON secret
-        env:
-          ENV_JSON: ${{ secrets.ENV_STAGING }}
-        run: |
-          echo "$ENV_JSON" > config.json
-          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' config.json > .env
-          rm -f config.json
-
-      # Restore confidential files
-      # - name: Restore confidential files
-      #   run: |
-      #     mkdir -p storage/app/public
-      #
-      #     echo "${{ secrets.NOTIFICATION_JSON }}" | base64 --decode > storage/app/public/dogpack-cf51fd3ee838.json
-      #     chmod 600 storage/app/public/dogpack-cf51fd3ee838.json
-      #
-      #     echo "${{ secrets.GOOGLE_SERVICE_SECRET }}" | base64 --decode > storage/app/google-service-account.json
-      #     chmod 600 storage/app/google-service-account.json
-
       - name: Create zip artifact
         run: |
           aws s3 cp s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/appspec.yml .
           aws s3 cp s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/beforeInstall .
           aws s3 cp s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/applicationStart .
 
-          zip -r ${{ steps.artifact_name.outputs.unique_name }}.zip . -x "*.git*" "*.github*"
+          zip -r ${{ steps.artifact_name.outputs.unique_name }}.zip . \
+            -x "*.git*" "*.github*"
 
       - name: Upload to S3
         run: |
