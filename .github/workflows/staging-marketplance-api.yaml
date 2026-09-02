@@ -1,6 +1,6 @@
 name: Marketplace-API-STG Pipeline
 
-on: 
+on:
   push:
     branches: [ staging ]
   workflow_dispatch:
@@ -17,7 +17,24 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-           # Run tests before creating .env so DB_* comes from phpunit.xml (sqlite :memory:)
+
+      # Restore Laravel Passport keys before running tests
+      - name: Restore Passport OAuth keys
+        env:
+          PASSPORT_PRIVATE_KEY: ${{ secrets.PASSPORT_PRIVATE_KEY }}
+          PASSPORT_PUBLIC_KEY: ${{ secrets.PASSPORT_PUBLIC_KEY }}
+        run: |
+          mkdir -p storage
+
+          printf '%s\n' "$PASSPORT_PRIVATE_KEY" > storage/oauth-private.key
+          printf '%s\n' "$PASSPORT_PUBLIC_KEY" > storage/oauth-public.key
+
+          chmod 600 storage/oauth-private.key
+          chmod 600 storage/oauth-public.key
+
+          echo "Passport OAuth keys restored successfully"
+
+      # Run tests before creating .env so DB_* comes from phpunit.xml (sqlite :memory:)
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 
@@ -44,15 +61,16 @@ jobs:
           jq -r 'to_entries | .[] | "\(.key)=\(.value)"' config.json > .env
           rm -f config.json
 
-#      - name: Restore confidential files
-#        run: |
-#          mkdir -p storage/app/public
-#
-#          echo "${{ secrets.NOTIFICATION_JSON }}" | base64 --decode > storage/app/public/dogpack-cf51fd3ee838.json
-#          chmod 777 storage/app/public/dogpack-cf51fd3ee838.json
-#
-#          echo "${{ secrets.GOOGLE_SERVICE_SECRET }}" | base64 --decode > storage/app/google-service-account.json
-#          chmod 777 storage/app/google-service-account.json
+      # Restore confidential files
+      # - name: Restore confidential files
+      #   run: |
+      #     mkdir -p storage/app/public
+      #
+      #     echo "${{ secrets.NOTIFICATION_JSON }}" | base64 --decode > storage/app/public/dogpack-cf51fd3ee838.json
+      #     chmod 600 storage/app/public/dogpack-cf51fd3ee838.json
+      #
+      #     echo "${{ secrets.GOOGLE_SERVICE_SECRET }}" | base64 --decode > storage/app/google-service-account.json
+      #     chmod 600 storage/app/google-service-account.json
 
       - name: Create zip artifact
         run: |
@@ -64,8 +82,9 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp ${{ steps.artifact_name.outputs.unique_name }}.zip s3://${{ secrets.S3_BUCKET_staging }}/staging/marketplace-api-stg/
-
+          aws s3 cp \
+            ${{ steps.artifact_name.outputs.unique_name }}.zip \
+            s3://${{ secrets.S3_BUCKET_staging }}/staging/marketplace-api-stg/
 
       - name: Create Marketplace CodeDeploy deployment
         id: deploy_marketplace
@@ -84,13 +103,17 @@ jobs:
       - name: Wait for Marketplace deployment
         run: |
           DEPLOYMENT_ID="${{ steps.deploy_marketplace.outputs.deployment_id }}"
+
           echo "Waiting for marketplace deployment: $DEPLOYMENT_ID"
 
           set +e
+
           aws deploy wait deployment-successful \
             --deployment-id $DEPLOYMENT_ID \
             --region us-east-1
+
           WAIT_EXIT_CODE=$?
+
           set -e
 
           if [ $WAIT_EXIT_CODE -eq 0 ]; then
@@ -99,10 +122,14 @@ jobs:
             aws deploy get-deployment \
               --deployment-id $DEPLOYMENT_ID \
               --region us-east-1 \
-              --output json | jq -r '.deploymentInfo | "Status: \(.status)\nError Code: \(.errorInformation.code)\nError Message: \(.errorInformation.message)"'
+              --output json | jq -r \
+              '.deploymentInfo | "Status: \(.status)\nError Code: \(.errorInformation.code)\nError Message: \(.errorInformation.message)"'
+
             exit 1
           fi
 
       - name: Clean up
         run: |
           rm -f ${{ steps.artifact_name.outputs.unique_name }}.zip
+          rm -f storage/oauth-private.key
+          rm -f storage/oauth-public.key
