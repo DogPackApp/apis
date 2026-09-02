@@ -61,20 +61,6 @@ jobs:
 
           test -f .env
 
-          echo "Checking required environment variables..."
-
-          if grep -q '^APP_KEY=' .env; then
-            echo "APP_KEY is present"
-          else
-            echo "ERROR: APP_KEY is missing from .env"
-            exit 1
-          fi
-
-          if grep -q '^APP_ENV=' .env; then
-            echo "APP_ENV is present"
-          else
-            echo "WARNING: APP_ENV is missing"
-          fi
 
       # ============================================================
       # 4. Install Composer dependencies
@@ -108,12 +94,6 @@ jobs:
 
           test -s storage/oauth-private.key
           test -s storage/oauth-public.key
-
-          echo "Passport private key:"
-          ls -lh storage/oauth-private.key
-
-          echo "Passport public key:"
-          ls -lh storage/oauth-public.key
 
       # ============================================================
       # 7. Run tests
