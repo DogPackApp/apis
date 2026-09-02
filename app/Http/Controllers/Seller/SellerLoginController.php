@@ -7,6 +7,7 @@ use App\Http\Requests\Seller\SellerLoginRequest;
 use App\Http\Resources\Seller\SellerResource;
 use App\Mail\SellerOTPMail;
 use App\Models\Seller\Seller;
+use App\Models\Store\Store;
 use App\Services\AuthFailureNotifier;
 use App\Services\OTPService;
 use Illuminate\Http\JsonResponse;
@@ -52,7 +53,7 @@ class SellerLoginController extends Controller
             ),
             new OA\Response(
                 response: 401,
-                description: 'Invalid credentials',
+                description: 'Invalid credentials, or the seller\'s store is inactive/blocked',
                 content: new OA\JsonContent(
                     properties: [new OA\Property(property: 'message', type: 'string', example: 'Invalid credentials')]
                 )
@@ -77,6 +78,14 @@ class SellerLoginController extends Controller
 
             if (! $seller || ! Hash::check($request->validated('password'), $seller->password)) {
                 return response()->json(['message' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
+            }
+
+            $seller->load('store');
+
+            if ($seller->store && $seller->store->states === Store::STATES_INACTIVE) {
+                return response()->json([
+                    'message' => 'Your account is blocked, please contact '.config('services.DOGPACK_EMAIL').'.',
+                ], Response::HTTP_UNAUTHORIZED);
             }
 
             if ($seller->is2FAEnabled()) {
