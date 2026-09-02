@@ -3,6 +3,7 @@
 use App\Mail\SellerOTPMail;
 use App\Models\Seller\OnboardingStatus;
 use App\Models\Seller\Seller;
+use App\Models\Store\Store;
 use App\Services\OTPService;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Passport\Passport;
@@ -122,7 +123,19 @@ test('authenticated seller can view their profile', function () {
         ->assertOk()
         ->assertJsonPath('data.uuid', $seller->uuid)
         ->assertJsonPath('data.email', $seller->email)
-        ->assertJsonMissingPath('data.store');
+        ->assertJsonPath('data.store', null);
+});
+
+test('authenticated seller profile includes their store once created', function () {
+    $seller = Seller::factory()->verified()->create();
+    $store = Store::factory()->create(['seller_id' => $seller->id]);
+
+    Passport::actingAs($seller, ['seller'], 'marketplace');
+
+    $this->getJson('/api/seller/me')
+        ->assertOk()
+        ->assertJsonPath('data.store.uuid', $store->uuid)
+        ->assertJsonPath('data.store.name', $store->name);
 });
 
 test('authenticated seller can logout', function () {
