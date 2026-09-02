@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\OnboardingStep;
 use App\Models\Seller\OnboardingStatus;
 use App\Models\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;
@@ -16,13 +17,43 @@ class OnboardingService
 
         $onboarding = new OnboardingStatus;
         $onboarding->seller_id = $seller->id;
-        $onboarding->is_product = 0;
-        $onboarding->is_subscribe = 0;
-        $onboarding->is_store_setting = 0;
-        $onboarding->is_finance = 0;
+
+        foreach (OnboardingStep::cases() as $step) {
+            $onboarding->{$step->value} = 0;
+        }
+
         $onboarding->save();
 
         return $this;
+    }
+
+    public function complete(Seller $seller, OnboardingStep $step): OnboardingStatus
+    {
+        $onboarding = $this->fetchOnboardingStatus($seller) ?? tap(new OnboardingStatus, function (OnboardingStatus $onboarding) use ($seller): void {
+            $onboarding->seller_id = $seller->id;
+        });
+
+        $onboarding->{$step->value} = 1;
+        $onboarding->save();
+
+        return $onboarding;
+    }
+
+    public function isComplete(Seller $seller): bool
+    {
+        $onboarding = $this->fetchOnboardingStatus($seller);
+
+        if (! $onboarding) {
+            return false;
+        }
+
+        foreach (OnboardingStep::cases() as $step) {
+            if (! $onboarding->{$step->value}) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function fetchOnboardingStatus(Seller $seller): OnboardingStatus|Model|null

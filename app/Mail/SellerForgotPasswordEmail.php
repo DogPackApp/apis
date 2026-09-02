@@ -18,7 +18,9 @@ class SellerForgotPasswordEmail extends Mailable implements ShouldQueue
         public string $token,
         public string $email,
         public string $first_name,
-    ) {}
+    ) {
+        $this->onQueue(config('queue.low'));
+    }
 
     public function envelope(): Envelope
     {

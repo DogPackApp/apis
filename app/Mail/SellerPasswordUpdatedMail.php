@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Seller\Seller;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -10,11 +11,11 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class SellerOTPMail extends Mailable implements ShouldQueue
+class SellerPasswordUpdatedMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public mixed $user, public mixed $otp)
+    public function __construct(public Seller $seller)
     {
         $this->onQueue(config('queue.low'));
     }
@@ -26,14 +27,17 @@ class SellerOTPMail extends Mailable implements ShouldQueue
                 config('mail.marketplace_from.address'),
                 config('mail.marketplace_from.name'),
             ),
-            subject: 'Your OTP Verification Code',
+            subject: 'Your password has been changed',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.seller.otp',
+            view: 'emails.seller.password-updated',
+            with: [
+                'name' => $this->seller->first_name,
+            ],
         );
     }
 }
