@@ -16,10 +16,58 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\Response;
 
 class SellerGoogleLoginController extends Controller
 {
+    #[OA\Post(
+        path: '/api/seller/google/login',
+        summary: 'Log in or register a seller via Google OAuth code exchange',
+        description: 'Exchanges an authorization `code` (obtained by the frontend via Google\'s popup/postMessage flow) for a token, then either logs in an existing seller (linking google_id if unset) or creates a new, pre-verified seller.',
+        tags: ['Seller Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['code'],
+                properties: [new OA\Property(property: 'code', type: 'string')]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Login/registration successful, token issued (2FA disabled)',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/Seller'),
+                        new OA\Property(property: 'token', type: 'string'),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 202,
+                description: '2FA is enabled on the linked seller — OTP emailed, no token yet',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string', example: 'OTP sent to your email.'),
+                        new OA\Property(property: 'email', type: 'string', format: 'email'),
+                        new OA\Property(property: 'twoFa', type: 'boolean', example: true),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: 'Google email is not verified',
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string', example: 'Email not verified with Google')])
+            ),
+            new OA\Response(response: 422, description: 'Validation error (code missing)'),
+            new OA\Response(
+                response: 500,
+                description: 'Google code exchange failed or another unexpected error',
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string', example: 'Authentication failed')])
+            ),
+        ]
+    )]
     public function __invoke(SellerGoogleLoginRequest $request, AuthFailureNotifier $notifier): JsonResponse
     {
         try {

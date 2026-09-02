@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "darkaonline/l5-swagger": "^11.1",
         "laravel/framework": "^13.8",
         "laravel/passport": "^13.7",
         "laravel/slack-notification-channel": "^3.10",
@@ -57,7 +58,8 @@
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
+            "@php artisan package:discover --ansi",
+            "@php artisan l5-swagger:generate --ansi"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force",

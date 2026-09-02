@@ -4,7 +4,19 @@ namespace App\Http\Resources\Misc;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use OpenApi\Attributes as OA;
 
+#[OA\Schema(
+    schema: 'Onboarding',
+    properties: [
+        new OA\Property(property: 'uuid', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'is_product', type: 'integer', enum: [0, 1]),
+        new OA\Property(property: 'is_shipping', type: 'integer', enum: [0, 1]),
+        new OA\Property(property: 'is_store_setting', type: 'integer', enum: [0, 1]),
+        new OA\Property(property: 'is_finance', type: 'integer', enum: [0, 1]),
+        new OA\Property(property: 'is_subscribe', type: 'integer', enum: [0, 1]),
+    ]
+)]
 class OnboardingResource extends JsonResource
 {
     /**

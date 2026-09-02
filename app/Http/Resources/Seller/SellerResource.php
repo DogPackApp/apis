@@ -5,7 +5,24 @@ namespace App\Http\Resources\Seller;
 use App\Http\Resources\Store\StoreResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use OpenApi\Attributes as OA;
 
+#[OA\Schema(
+    schema: 'Seller',
+    properties: [
+        new OA\Property(property: 'uuid', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'first_name', type: 'string'),
+        new OA\Property(property: 'last_name', type: 'string'),
+        new OA\Property(property: 'phone', type: 'string', nullable: true),
+        new OA\Property(property: 'email', type: 'string', format: 'email'),
+        new OA\Property(property: 'status', type: 'integer', description: '0 = unverified, 1 = verified'),
+        new OA\Property(property: 'twofa_enabled', type: 'integer', description: '0 = disabled, 1 = enabled'),
+        new OA\Property(property: 'store', ref: '#/components/schemas/Store', nullable: true),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'is_master_login', type: 'boolean'),
+    ]
+)]
 class SellerResource extends JsonResource
 {
     /**
