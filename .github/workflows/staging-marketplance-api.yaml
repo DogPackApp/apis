@@ -15,10 +15,16 @@ jobs:
     environment: staging
 
     steps:
+
+      # ============================================================
+      # 1. Checkout
+      # ============================================================
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Restore Laravel Passport OAuth keys
+      # ============================================================
+      # 2. Restore Laravel Passport OAuth keys
+      # ============================================================
       - name: Restore Passport OAuth keys
         env:
           PASSPORT_PRIVATE_KEY: ${{ secrets.PASSPORT_PRIVATE_KEY }}
@@ -34,98 +40,214 @@ jobs:
 
           echo "Passport OAuth keys restored"
 
-      # Create .env BEFORE tests
-      - name: Create .env file from JSON secret
+          test -s storage/oauth-private.key
+          test -s storage/oauth-public.key
+
+      # ============================================================
+      # 3. Create .env BEFORE running tests
+      # ============================================================
+      - name: Create .env file
         env:
           ENV_JSON: ${{ secrets.ENV_STAGING }}
         run: |
           echo "$ENV_JSON" > config.json
-          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' config.json > .env
+
+          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' \
+            config.json > .env
+
           rm -f config.json
 
-      # Install dependencies
+          echo ".env created successfully"
+
+          test -f .env
+
+          echo "Checking required environment variables..."
+
+          if grep -q '^APP_KEY=' .env; then
+            echo "APP_KEY is present"
+          else
+            echo "ERROR: APP_KEY is missing from .env"
+            exit 1
+          fi
+
+          if grep -q '^APP_ENV=' .env; then
+            echo "APP_ENV is present"
+          else
+            echo "WARNING: APP_ENV is missing"
+          fi
+
+      # ============================================================
+      # 4. Install Composer dependencies
+      # ============================================================
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist
+        run: |
+          composer install \
+            --no-interaction \
+            --prefer-dist
 
-      # Run tests
-      # APP_KEY_STAGING is explicitly supplied to Laravel during tests
+      # ============================================================
+      # 5. Clear Laravel caches before tests
+      # ============================================================
+      - name: Clear Laravel caches
+        run: |
+          php artisan config:clear
+          php artisan cache:clear || true
+          php artisan route:clear || true
+          php artisan view:clear || true
+
+      # ============================================================
+      # 6. Verify Laravel environment
+      # ============================================================
+      - name: Verify Laravel environment
+        run: |
+          echo "Checking Laravel application..."
+
+          php artisan --version
+
+          echo "Checking Passport keys..."
+
+          test -s storage/oauth-private.key
+          test -s storage/oauth-public.key
+
+          echo "Passport private key:"
+          ls -lh storage/oauth-private.key
+
+          echo "Passport public key:"
+          ls -lh storage/oauth-public.key
+
+      # ============================================================
+      # 7. Run tests
+      # ============================================================
       - name: Run tests
-        env:
-          APP_KEY: ${{ secrets.APP_KEY_STAGING }}
-        run: composer test
+        run: |
+          composer test
 
-      # Remove test dependencies from deploy artifact
+      # ============================================================
+      # 8. Remove vendor from deployment artifact
+      # ============================================================
       - name: Remove test dependencies from deploy artifact
-        run: rm -rf vendor
+        run: |
+          rm -rf vendor
 
+      # ============================================================
+      # 9. Generate unique artifact name
+      # ============================================================
       - name: Generate unique artifact name
         id: artifact_name
         run: |
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           COMMIT_SHA_SHORT=$(git rev-parse --short HEAD)
+
           UNIQUE_NAME="artifact_${TIMESTAMP}_${COMMIT_SHA_SHORT}"
-          echo "unique_name=$UNIQUE_NAME" >> $GITHUB_OUTPUT
+
+          echo "unique_name=$UNIQUE_NAME" >> "$GITHUB_OUTPUT"
+
           echo "Artifact name: $UNIQUE_NAME"
 
-      - name: Create zip artifact
+      # ============================================================
+      # 10. Download deployment scripts from S3
+      # ============================================================
+      - name: Download CodeDeploy files
         run: |
-          aws s3 cp s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/appspec.yml .
-          aws s3 cp s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/beforeInstall .
-          aws s3 cp s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/applicationStart .
+          mkdir -p deploy
 
-          zip -r ${{ steps.artifact_name.outputs.unique_name }}.zip . \
-            -x "*.git*" "*.github*"
+          aws s3 cp \
+            s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/appspec.yml \
+            deploy/appspec.yml
 
-      - name: Upload to S3
+          aws s3 cp \
+            s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/beforeInstall \
+            deploy/beforeInstall
+
+          aws s3 cp \
+            s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/applicationStart \
+            deploy/applicationStart
+
+          chmod +x deploy/beforeInstall
+          chmod +x deploy/applicationStart
+
+          echo "CodeDeploy files downloaded"
+
+      # ============================================================
+      # 11. Create deployment ZIP
+      # ============================================================
+      - name: Create deployment artifact
+        run: |
+          cp deploy/appspec.yml .
+          cp deploy/beforeInstall .
+          cp deploy/applicationStart .
+
+          chmod +x beforeInstall
+          chmod +x applicationStart
+
+          zip -r \
+            "${{ steps.artifact_name.outputs.unique_name }}.zip" \
+            . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x "deploy/*" \
+            -x "*.zip"
+
+          echo "Deployment artifact created"
+
+          ls -lh \
+            "${{ steps.artifact_name.outputs.unique_name }}.zip"
+
+      # ============================================================
+      # 12. Upload artifact to S3
+      # ============================================================
+      - name: Upload artifact to S3
         run: |
           aws s3 cp \
-            ${{ steps.artifact_name.outputs.unique_name }}.zip \
-            s3://${{ secrets.S3_BUCKET_staging }}/staging/marketplace-api-stg/
+            "${{ steps.artifact_name.outputs.unique_name }}.zip" \
+            "s3://${{ secrets.S3_BUCKET_staging }}/staging/marketplace-api-stg/${{ steps.artifact_name.outputs.unique_name }}.zip"
 
-      - name: Create Marketplace CodeDeploy deployment
-        id: deploy_marketplace
+          echo "Artifact uploaded to S3"
+
+      # ============================================================
+      # 13. Create CodeDeploy deployment
+      # ============================================================
+      - name: Create CodeDeploy deployment
+        id: deploy
         run: |
           DEPLOYMENT_ID=$(aws deploy create-deployment \
             --application-name marketplace-api-stg \
             --deployment-group-name marketplace-api-stg-dg \
+            --deployment-config-name CodeDeployDefault.AllAtOnce \
             --s3-location bucket=${{ secrets.S3_BUCKET_staging }},key=staging/marketplace-api-stg/${{ steps.artifact_name.outputs.unique_name }}.zip,bundleType=zip \
             --region us-east-1 \
-            --description "Marketplace API STG deployment from GitHub Actions run $GITHUB_RUN_ID" \
             --query 'deploymentId' \
             --output text)
 
-          echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+          echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for Marketplace deployment
+          echo "CodeDeploy Deployment ID: $DEPLOYMENT_ID"
+
+      # ============================================================
+      # 14. Wait for CodeDeploy
+      # ============================================================
+      - name: Wait for deployment
         run: |
-          DEPLOYMENT_ID="${{ steps.deploy_marketplace.outputs.deployment_id }}"
-
-          echo "Waiting for marketplace deployment: $DEPLOYMENT_ID"
-
-          set +e
+          echo "Waiting for CodeDeploy deployment..."
 
           aws deploy wait deployment-successful \
-            --deployment-id $DEPLOYMENT_ID \
+            --deployment-id "${{ steps.deploy.outputs.deployment_id }}" \
             --region us-east-1
 
-          WAIT_EXIT_CODE=$?
+          echo "Deployment completed successfully"
 
-          set -e
-
-          if [ $WAIT_EXIT_CODE -eq 0 ]; then
-            echo "Marketplace deployment completed successfully!"
-          else
-            aws deploy get-deployment \
-              --deployment-id $DEPLOYMENT_ID \
-              --region us-east-1 \
-              --output json | jq -r \
-              '.deploymentInfo | "Status: \(.status)\nError Code: \(.errorInformation.code)\nError Message: \(.errorInformation.message)"'
-
-            exit 1
-          fi
-
-      - name: Clean up
+      # ============================================================
+      # 15. Cleanup sensitive files and artifact
+      # ============================================================
+      - name: Cleanup
+        if: always()
         run: |
-          rm -f ${{ steps.artifact_name.outputs.unique_name }}.zip
-          rm -f storage/oauth-private.key
-          rm -f storage/oauth-public.key
+          rm -f \
+            storage/oauth-private.key \
+            storage/oauth-public.key \
+            config.json
+
+          rm -f \
+            "${{ steps.artifact_name.outputs.unique_name }}.zip"
+
+          echo "Cleanup completed"
