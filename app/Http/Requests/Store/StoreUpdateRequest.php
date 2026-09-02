@@ -22,8 +22,8 @@ class StoreUpdateRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255', Rule::unique('stores', 'name')->ignore($storeId)],
             'description' => ['sometimes', 'nullable', 'string'],
-            'image' => ['sometimes', 'nullable', 'string'],
-            'cover_image' => ['sometimes', 'nullable', 'string'],
+            'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png', 'max:1024'],
+            'cover_image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png', 'max:1024'],
             'social_links' => ['sometimes', 'nullable', 'array'],
             'timezone' => ['sometimes', 'nullable', 'string', Rule::in(timezone_identifiers_list())],
         ];

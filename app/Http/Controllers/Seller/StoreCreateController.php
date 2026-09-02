@@ -9,6 +9,7 @@ use App\Http\Resources\Store\StoreResource;
 use App\Mail\SellerWelcomeEmail;
 use App\Models\Store\Store;
 use App\Services\OnboardingService;
+use App\Support\Media;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -25,16 +26,19 @@ class StoreCreateController extends Controller
         tags: ['Store'],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(
-                required: ['name'],
-                properties: [
-                    new OA\Property(property: 'name', type: 'string', example: "Ada's Widgets"),
-                    new OA\Property(property: 'description', type: 'string', nullable: true),
-                    new OA\Property(property: 'image', type: 'string', nullable: true),
-                    new OA\Property(property: 'cover_image', type: 'string', nullable: true),
-                    new OA\Property(property: 'social_links', type: 'object', nullable: true),
-                    new OA\Property(property: 'timezone', type: 'string', nullable: true, example: 'America/Toronto'),
-                ]
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['name'],
+                    properties: [
+                        new OA\Property(property: 'name', type: 'string', example: "Ada's Widgets"),
+                        new OA\Property(property: 'description', type: 'string', nullable: true),
+                        new OA\Property(property: 'image', type: 'string', format: 'binary', nullable: true, description: 'jpg/jpeg/png, max 1MB'),
+                        new OA\Property(property: 'cover_image', type: 'string', format: 'binary', nullable: true, description: 'jpg/jpeg/png, max 1MB'),
+                        new OA\Property(property: 'social_links', type: 'object', nullable: true),
+                        new OA\Property(property: 'timezone', type: 'string', nullable: true, example: 'America/Toronto'),
+                    ]
+                )
             )
         ),
         responses: [
@@ -60,16 +64,25 @@ class StoreCreateController extends Controller
         }
 
         $store = DB::transaction(function () use ($request, $seller): Store {
-            $store = new Store($request->validated());
+            $store = new Store($request->safe()->except(['image', 'cover_image']));
             $store->seller_id = $seller->id;
             $store->status = 1;
             $store->states = Store::STATES_ACTIVE;
+
+            if ($request->hasFile('image')) {
+                $store->image = Media::store($request->file('image'), "store/{$seller->uuid}");
+            }
+
+            if ($request->hasFile('cover_image')) {
+                $store->cover_image = Media::store($request->file('cover_image'), "store/{$seller->uuid}");
+            }
+
             $store->save();
 
             return $store;
         });
 
-        $onboardingService->complete($seller, OnboardingStep::StoreSetting);
+        $onboardingService->complete($seller, OnboardingStep::StoreSetting, $store);
 
         Mail::to($seller->email)->send(new SellerWelcomeEmail($seller));
 

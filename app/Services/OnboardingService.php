@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\OnboardingStep;
 use App\Models\Seller\OnboardingStatus;
 use App\Models\Seller\Seller;
+use App\Models\Store\Store;
 use Illuminate\Database\Eloquent\Model;
 
 class OnboardingService
@@ -27,13 +28,18 @@ class OnboardingService
         return $this;
     }
 
-    public function complete(Seller $seller, OnboardingStep $step): OnboardingStatus
+    public function complete(Seller $seller, OnboardingStep $step, ?Store $store = null): OnboardingStatus
     {
         $onboarding = $this->fetchOnboardingStatus($seller) ?? tap(new OnboardingStatus, function (OnboardingStatus $onboarding) use ($seller): void {
             $onboarding->seller_id = $seller->id;
         });
 
         $onboarding->{$step->value} = 1;
+
+        if ($store && ! $onboarding->store_id) {
+            $onboarding->store_id = $store->id;
+        }
+
         $onboarding->save();
 
         return $onboarding;
