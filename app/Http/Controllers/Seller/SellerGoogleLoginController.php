@@ -3,35 +3,27 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Seller\SellerGoogleLoginRequest;
 use App\Http\Resources\Seller\SellerResource;
 use App\Mail\SellerOTPMail;
 use App\Models\Seller\Seller;
+use App\Services\AuthFailureNotifier;
 use App\Services\OnboardingService;
 use App\Services\OTPService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class SellerGoogleLoginController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(SellerGoogleLoginRequest $request, AuthFailureNotifier $notifier): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'code' => ['required', 'string'],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
         try {
-            $googleUser = $this->verifyGoogleCode($request->code);
+            $googleUser = $this->verifyGoogleCode($request->validated('code'));
 
             if (! isset($googleUser['email']) || ! isset($googleUser['verified_email']) || ! $googleUser['verified_email']) {
                 return response()->json(['message' => 'Email not verified with Google'], Response::HTTP_BAD_REQUEST);
@@ -71,8 +63,9 @@ class SellerGoogleLoginController extends Controller
                 ->additional(['token' => $token])
                 ->response()
                 ->setStatusCode(Response::HTTP_OK);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Google OAuth error: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            $notifier->notify('google_login', 'unknown', $e);
 
             return response()->json(['message' => 'Authentication failed'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }

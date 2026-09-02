@@ -12,13 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('oauth_access_tokens', function (Blueprint $table) {
-            $table->primary('id');
-
-            $table->index(
-                'user_id',
-                'oauth_access_tokens_user_id_index'
-            );
-
             $table->index(
                 'client_id',
                 'oauth_access_tokens_client_id_index'

@@ -14,7 +14,10 @@ class SellerOTPMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public mixed $user, public mixed $otp) {}
+    public function __construct(public mixed $user, public mixed $otp)
+    {
+        $this->onQueue(config('queue.low'));
+    }
 
     public function envelope(): Envelope
     {

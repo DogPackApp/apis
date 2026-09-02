@@ -12,7 +12,7 @@ class SellerProfileController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        return SellerResource::make($request->user())
+        return SellerResource::make($request->user()->load('store'))
             ->response()
             ->setStatusCode(Response::HTTP_OK);
     }

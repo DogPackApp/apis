@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\SellerForgotPasswordEmail;
+use App\Mail\SellerPasswordUpdatedMail;
 use App\Models\Seller\Seller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -34,7 +35,9 @@ test('forgot password queues a reset email', function () {
     Mail::assertQueued(SellerForgotPasswordEmail::class);
 });
 
-test('seller can reset their password', function () {
+test('seller can reset their password and receives a confirmation email', function () {
+    Mail::fake();
+
     $seller = Seller::factory()->verified()->create([
         'email' => 'seller@example.com',
     ]);
@@ -49,6 +52,8 @@ test('seller can reset their password', function () {
     ])->assertOk();
 
     expect(Hash::check('new-password', $seller->fresh()->password))->toBeTrue();
+
+    Mail::assertQueued(SellerPasswordUpdatedMail::class);
 });
 
 test('password reset rejects an invalid token', function () {

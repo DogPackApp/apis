@@ -3,20 +3,26 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Seller\SellerForgotPasswordRequest;
+use App\Services\AuthFailureNotifier;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Symfony\Component\HttpFoundation\Response;
 
 class SellerForgotPasswordController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(SellerForgotPasswordRequest $request, AuthFailureNotifier $notifier): JsonResponse
     {
-        $request->validate(['email' => ['required', 'email', 'exists:sellers,email']]);
+        try {
+            $status = Password::broker('sellers')->sendResetLink(
+                $request->validated()
+            );
+        } catch (\Throwable $e) {
+            report($e);
+            $notifier->notify('forgot_password', (string) $request->input('email'), $e);
 
-        $status = Password::broker('sellers')->sendResetLink(
-            $request->only('email')
-        );
+            return response()->json(['message' => 'Internal server error'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
 
         if ($status == Password::RESET_LINK_SENT) {
             return response()->json(['message' => 'Reset link sent to your email.'], Response::HTTP_OK);

@@ -3,9 +3,11 @@
 namespace App\Models\Seller;
 
 use App\Mail\SellerForgotPasswordEmail;
+use App\Models\Store\Store;
 use Database\Factories\SellerFactory;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Mail;
@@ -70,5 +72,10 @@ class Seller extends Authenticatable implements CanResetPassword, OAuthenticatab
     public function is2FAEnabled(): bool
     {
         return $this->twofa_enabled === 1;
+    }
+
+    public function store(): HasOne
+    {
+        return $this->hasOne(Store::class);
     }
 }

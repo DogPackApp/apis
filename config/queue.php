@@ -109,6 +109,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Named Queues
+    |--------------------------------------------------------------------------
+    |
+    | Logical queue names used by mailables/notifications instead of scattering
+    | raw queue-name string literals across the app.
+    |
+    */
+
+    'low' => env('QUEUE_LOW', 'mkt-low'),
+    'high' => env('QUEUE_HIGH', 'mkt-high'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Failed Queue Jobs
     |--------------------------------------------------------------------------
     |

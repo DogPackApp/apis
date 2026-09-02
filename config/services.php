@@ -33,6 +33,7 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+        'seller_auth_webhook' => env('SLACK_SELLER_AUTH_WEBHOOK'),
     ],
 
     'google' => [
@@ -41,6 +42,7 @@ return [
     ],
 
     'marketplace_fe_url' => env('MARKETPLACE_FE_URL'),
+    'marketplace_media' => env('MARKETPLACE_CLOUDFRONT_URL'),
     'website_url' => env('WEBSITE_URL'),
     'website_assets_url' => env('WEBSITE_ASSETS_URL'),
     'support_phone' => env('SUPPORT_PHONE'),
