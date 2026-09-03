@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Seller\SellerChangePasswordController;
+use App\Http\Controllers\Seller\SellerCurrentPasswordController;
 use App\Http\Controllers\Seller\SellerForgotPasswordController;
 use App\Http\Controllers\Seller\SellerGoogleLoginController;
 use App\Http\Controllers\Seller\SellerLoginController;
@@ -9,6 +11,9 @@ use App\Http\Controllers\Seller\SellerOnboardingStatusController;
 use App\Http\Controllers\Seller\SellerProfileController;
 use App\Http\Controllers\Seller\SellerRegistrationController;
 use App\Http\Controllers\Seller\SellerResetPasswordController;
+use App\Http\Controllers\Seller\SellerTwoFactorDisableController;
+use App\Http\Controllers\Seller\SellerTwoFactorEnableController;
+use App\Http\Controllers\Seller\SellerTwoFactorOtpController;
 use App\Http\Controllers\Seller\SellerUpdateController;
 use App\Http\Controllers\Seller\SellerVerifyController;
 use App\Http\Controllers\Seller\StoreCreateController;
@@ -34,6 +39,12 @@ Route::prefix('seller')->group(function () {
         Route::get('/store', StoreShowController::class)->name('seller.store.show');
         Route::post('/store', StoreCreateController::class)->name('seller.store.create');
         Route::put('/store', StoreUpdateController::class)->name('seller.store.update');
+
+        Route::post('/password/current', SellerCurrentPasswordController::class)->name('seller.password.current');
+        Route::post('/password/change', SellerChangePasswordController::class)->name('seller.password.change');
+        Route::post('/2fa/otp', SellerTwoFactorOtpController::class)->name('seller.2fa.otp');
+        Route::post('/2fa/enable', SellerTwoFactorEnableController::class)->name('seller.2fa.enable');
+        Route::post('/2fa/disable', SellerTwoFactorDisableController::class)->name('seller.2fa.disable');
 
         Route::put('/{seller:uuid}', SellerUpdateController::class)->name('seller.update');
     });
