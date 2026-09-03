@@ -21,6 +21,7 @@ use App\Http\Controllers\Seller\StoreShowController;
 use App\Http\Controllers\Seller\StoreUpdateController;
 
 Route::prefix('seller')->group(function () {
+    // Seller auth — public, rate-limited
     Route::middleware(['throttle:seller-auth'])->group(function () {
         Route::post('/register', SellerRegistrationController::class)->name('seller.register');
         Route::post('/login', SellerLoginController::class)->name('seller.login');
@@ -30,15 +31,20 @@ Route::prefix('seller')->group(function () {
         Route::post('/google/login', SellerGoogleLoginController::class)->name('seller.google.login');
     });
 
+    // Store — registered before the /{seller:uuid} wildcard below, so PUT /store
+    // isn't swallowed by it.
+    Route::middleware(['auth:marketplace'])->group(function () {
+        Route::get('/store', StoreShowController::class)->name('seller.store.show');
+        Route::post('/store', StoreCreateController::class)->name('seller.store.create');
+        Route::put('/store', StoreUpdateController::class)->name('seller.store.update');
+    });
+
+    // Seller — profile, security, account
     Route::middleware(['auth:marketplace'])->group(function () {
         Route::get('/me', SellerProfileController::class)->name('seller.profile');
         Route::post('/logout', SellerLogoutController::class)->name('seller.logout');
         Route::post('/verify', SellerVerifyController::class)->name('seller.verify');
         Route::get('/onboarding/status', SellerOnboardingStatusController::class)->name('seller.onboarding.status');
-
-        Route::get('/store', StoreShowController::class)->name('seller.store.show');
-        Route::post('/store', StoreCreateController::class)->name('seller.store.create');
-        Route::put('/store', StoreUpdateController::class)->name('seller.store.update');
 
         Route::post('/password/current', SellerCurrentPasswordController::class)->name('seller.password.current');
         Route::post('/password/change', SellerChangePasswordController::class)->name('seller.password.change');
