@@ -17,6 +17,18 @@ Static lookup tables. Nothing else can meaningfully reference a country/currency
 - [x] `GET /misc/language` — language list
 - [ ] `GET /currency/convert` — hardcoded dev-test stub in backend-api, not a real feature; explicitly skipped
 
+**Measured response times** (real HTTP requests, `apis` running locally via `php artisan serve`, local SQLite, real Passport token — not synthetic; backend-api not benchmarked, by explicit choice, to avoid touching its live staging DB):
+
+| Endpoint | Cold (true cache-miss, warm process) | Warm avg | Warm median | Warm min–max |
+|---|---|---|---|---|
+| `/misc/country` (243 rows) | ~12ms | 6.4ms | 6.0ms | 5.6–12.5ms |
+| `/misc/currency` (5 rows) | ~6ms | 5.0ms | 5.0ms | 4.5–5.5ms |
+| `/misc/language` (14 rows) | ~6ms | 5.0ms | 4.9ms | 4.7–5.5ms |
+
+Cache TTL is 24h (`Cache::remember`). All three are dominated by Laravel's own per-request bootstrap, not the query — a 243-row SQLite scan is trivial either way.
+
+This benchmark is also what surfaced a real bug, since fixed (commit `4147561`): `Cache::remember()` was storing raw Eloquent Collections, and the `database` cache driver's `unserialize()` hit a class-autoload-timing issue on every request after the first, 500'ing almost every real cached request. Never caught by the test suite because `phpunit.xml` forces the `array` cache driver there. Fixed by caching plain arrays and rehydrating as `stdClass` — the same pattern backend-api's own `CountryListController` already uses, for the same underlying reason.
+
 ## Tier 1 — Seller (root identity, no dependencies)
 
 Everything downstream needs an authenticated seller.
