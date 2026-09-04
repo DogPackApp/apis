@@ -49,7 +49,8 @@ Everything downstream needs an authenticated seller.
 - [x] `POST /store/settings/security/2fa-verification` → `POST /seller/2fa/otp`
 - [x] `POST /store/settings/security/2fa-verification/enable` → `POST /seller/2fa/enable`
 - [x] `POST /store/settings/security/2fa-verification/disable` → `POST /seller/2fa/disable`
-- [ ] `POST /aws/presigned` — S3 presigned upload URLs (needs a seller session, not Store/Product; useful infra ahead of any image-upload-heavy module)
+
+Tier 1 is complete. `POST /aws/presigned` was originally listed here but was miscategorized — see the note under Tier 4 (Product) below.
 
 ## Tier 2 — Store (depends on: Seller)
 
@@ -134,6 +135,7 @@ An Item can't exist without a store to belong to, a section to sit in, and a pol
 - [ ] `POST /product/export-csv`
 - [ ] `POST /product/trigger-index` **(admin)**
 - [ ] `POST /theme/{theme:uuid}` — sync items for theme **(admin)**
+- [ ] `POST /aws/presigned` — presigned S3 upload URLs. Moved here from Tier 1: it's actually two unrelated things bolted into one controller — a store-image branch (skipped by decision; duplicates the direct-multipart upload already built in `StoreCreateController`/`StoreUpdateController`, and backend-api's version has a real race condition, writing the future S3 key to `Store.image` *before* the client has uploaded anything) and a product-gallery branch (`Gallery::insert(...)`, genuinely needs Product/Gallery to exist). Needs `league/flysystem-aws-s3-v3` + real AWS credentials either way — neither exists in this app yet. Revisit only the gallery half here; the store half stays out entirely.
 
 ## Tier 5 — Bulk/Import & Shopify sync (depends on: Product)
 
@@ -226,10 +228,10 @@ No build-order relevance; these aren't product features.
 | Tier | Done | Total |
 |---|---|---|
 | 0 — Reference data | 3 | 4 |
-| 1 — Seller | 16 | 17 |
+| 1 — Seller | 16 | 16 |
 | 2 — Store | 3 | 11 |
 | 3 — Store composition | 0 | 45 |
-| 4 — Product | 0 | 13 |
+| 4 — Product | 0 | 14 |
 | 5 — Bulk/Import/Shopify | 0 | 10 |
 | 6 — Orders | 0 | 17 |
 | 7 — Post-purchase | 0 | 10 |
