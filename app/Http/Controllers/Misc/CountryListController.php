@@ -33,9 +33,10 @@ class CountryListController extends Controller
             return Country::query()
                 ->orderBy('order')
                 ->orderBy('name')
-                ->get();
+                ->get()
+                ->toArray();
         });
 
-        return CountryResource::collection($countries);
+        return CountryResource::collection(collect($countries)->map(fn (array $country) => (object) $country));
     }
 }

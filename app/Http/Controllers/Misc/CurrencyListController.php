@@ -30,9 +30,9 @@ class CurrencyListController extends Controller
     public function __invoke(): AnonymousResourceCollection
     {
         $currencies = Cache::remember('misc.currencies', now()->addDay(), function () {
-            return Currency::query()->select(['id', 'name'])->get();
+            return Currency::query()->select(['id', 'name'])->get()->toArray();
         });
 
-        return MiscResource::collection($currencies);
+        return MiscResource::collection(collect($currencies)->map(fn (array $currency) => (object) $currency));
     }
 }

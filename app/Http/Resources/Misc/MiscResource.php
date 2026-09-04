@@ -27,9 +27,9 @@ class MiscResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'currency_code' => $this->currency_code,
-            'currency_name' => $this->currency_name,
-            'currency_symbol' => $this->currency_symbol,
+            'currency_code' => $this->currency_code ?? null,
+            'currency_name' => $this->currency_name ?? null,
+            'currency_symbol' => $this->currency_symbol ?? null,
         ];
     }
 }

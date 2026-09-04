@@ -30,9 +30,9 @@ class LanguageListController extends Controller
     public function __invoke(): AnonymousResourceCollection
     {
         $languages = Cache::remember('misc.languages', now()->addDay(), function () {
-            return Language::query()->select(['id', 'name'])->get();
+            return Language::query()->select(['id', 'name'])->get()->toArray();
         });
 
-        return MiscResource::collection($languages);
+        return MiscResource::collection(collect($languages)->map(fn (array $language) => (object) $language));
     }
 }
