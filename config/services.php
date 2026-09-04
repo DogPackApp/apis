@@ -41,6 +41,22 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
     ],
 
+    'marketplace_stripe' => [
+        'key' => env('MARKETPLACE_STRIPE_KEY'),
+        'public_key' => env('MARKETPLACE_STRIPE_PUBLIC_KEY'),
+        'wb_secret' => env('MARKETPLACE_STRIPE_WS_SECRET'),
+        'wb_secret_subscription' => env('MARKETPLACE_STRIPE_WS_SECRET_SUBSCRIPTION'),
+        'wb_stripe_payment_capture' => env('MARKETPLACE_STRIPE_WS_SECRET_PAYMENT_CAPTURE'),
+    ],
+
+    'marketplace_stripe_uk' => [
+        'key' => env('MARKETPLACE_STRIPE_UK_KEY'),
+        'public_key' => env('MARKETPLACE_STRIPE_UK_PUBLIC_KEY'),
+        'wb_secret' => env('MARKETPLACE_STRIPE_UK_WS_SECRET'),
+        'wb_secret_subscription' => env('MARKETPLACE_STRIPE_UK_WS_SECRET_SUBSCRIPTION'),
+        'wb_stripe_payment_capture' => env('MARKETPLACE_STRIPE_UK_WS_SECRET_PAYMENT_CAPTURE'),
+    ],
+
     'marketplace_fe_url' => env('MARKETPLACE_FE_URL'),
     'marketplace_media' => env('MARKETPLACE_CLOUDFRONT_URL'),
     'website_url' => env('WEBSITE_URL'),

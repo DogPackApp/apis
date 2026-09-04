@@ -26,6 +26,7 @@ class StoreUpdateRequest extends FormRequest
             'cover_image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png', 'max:1024'],
             'social_links' => ['sometimes', 'nullable', 'array'],
             'timezone' => ['sometimes', 'nullable', 'string', Rule::in(timezone_identifiers_list())],
+            'country_id' => ['sometimes', 'nullable', 'integer', 'exists:countries,id'],
         ];
     }
 }
