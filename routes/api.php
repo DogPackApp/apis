@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Misc\CountryListController;
+use App\Http\Controllers\Misc\CurrencyListController;
+use App\Http\Controllers\Misc\LanguageListController;
 use App\Http\Controllers\Seller\SellerChangePasswordController;
 use App\Http\Controllers\Seller\SellerCurrentPasswordController;
 use App\Http\Controllers\Seller\SellerForgotPasswordController;
@@ -54,4 +57,10 @@ Route::prefix('seller')->group(function () {
 
         Route::put('/{seller:uuid}', SellerUpdateController::class)->name('seller.update');
     });
+});
+
+Route::prefix('misc')->middleware(['auth:marketplace'])->group(function () {
+    Route::get('/country', CountryListController::class)->name('misc.country.list');
+    Route::get('/currency', CurrencyListController::class)->name('misc.currency.list');
+    Route::get('/language', LanguageListController::class)->name('misc.language.list');
 });
