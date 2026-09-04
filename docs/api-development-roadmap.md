@@ -59,14 +59,11 @@ One store per seller. Everything from here on is store-scoped.
 - [x] `GET /store` → `GET /seller/store`
 - [x] `POST /store` (create) → `POST /seller/store`
 - [x] `POST /store/{uuid}` (update) → `PUT /seller/store`
-- [ ] `POST /store/settings/teams/` — add team member **(depends on Tier 1 Seller, invites a second seller onto the store)**
-- [ ] `GET /store/settings/teams/` — list team members
-- [ ] `DELETE /store/settings/teams/{seller:uuid}` — remove team member
-- [ ] `POST /store/settings/teams/accept/invite/{seller:uuid}` — accept invite
-- [ ] `POST /store/settings/teams/invite/status/{uuid}` — invite status
 - [ ] `POST /store/invalidate/{seller:uuid}` — revoke a seller's tokens **(admin)**
 - [ ] `POST /stripe/connect` — connect a Stripe account to the store
 - [ ] `POST /wallets/adjust` — adjust store wallet points **(admin)**
+
+Team management (`store/settings/teams/*` — index, add member, remove member, accept invite, invite status) is **out of scope entirely**, not deferred — removed from this roadmap. backend-api's `TeamAddMemberController` hardcodes a literal shared password (`Hash::make("\/Rehan\/Backend\/Wizard\/")`) for every invited member, a real security issue, on top of the multi-user/seller-hierarchy model itself being outside this rebuild's scope.
 
 ## Tier 3 — Store composition (depends on: Store, Tier 0 reference data)
 
@@ -229,7 +226,7 @@ No build-order relevance; these aren't product features.
 |---|---|---|
 | 0 — Reference data | 3 | 4 |
 | 1 — Seller | 16 | 16 |
-| 2 — Store | 3 | 11 |
+| 2 — Store | 3 | 6 |
 | 3 — Store composition | 0 | 45 |
 | 4 — Product | 0 | 14 |
 | 5 — Bulk/Import/Shopify | 0 | 10 |
@@ -238,6 +235,6 @@ No build-order relevance; these aren't product features.
 | 8 — Money settlement | 0 | 10 |
 | 9 — Aggregation | 0 | 5 |
 | Ops/dev utilities | 0 | 8 |
-| **Total** | **22** | **150** |
+| **Total** | **22** | **145** |
 
-Tier 1 (Seller) is complete except the infra-only `/aws/presigned` route. Tier 2 (Store) has its three core CRUD routes done; Teams, Stripe Connect, and admin revoke are the remaining open items before Tier 3 can meaningfully start.
+Tier 1 (Seller) is fully complete. Tier 2 (Store) has its three core CRUD routes done; Stripe Connect and admin revoke are the remaining open items (Teams is out of scope, not open) before Tier 3 can meaningfully start.
