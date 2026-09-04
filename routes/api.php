@@ -3,6 +3,11 @@
 use App\Http\Controllers\Misc\CountryListController;
 use App\Http\Controllers\Misc\CurrencyListController;
 use App\Http\Controllers\Misc\LanguageListController;
+use App\Http\Controllers\Product\ProductArchiveToggleController;
+use App\Http\Controllers\Product\ProductCreateController;
+use App\Http\Controllers\Product\ProductListController;
+use App\Http\Controllers\Product\ProductShowController;
+use App\Http\Controllers\Product\ProductUpdateController;
 use App\Http\Controllers\Seller\SellerChangePasswordController;
 use App\Http\Controllers\Seller\SellerCurrentPasswordController;
 use App\Http\Controllers\Seller\SellerForgotPasswordController;
@@ -58,6 +63,15 @@ Route::prefix('seller')->group(function () {
         Route::post('/2fa/disable', SellerTwoFactorDisableController::class)->name('seller.2fa.disable');
 
         Route::put('/{seller:uuid}', SellerUpdateController::class)->name('seller.update');
+    });
+
+    // Product
+    Route::prefix('product')->middleware(['auth:marketplace'])->group(function () {
+        Route::post('/', ProductCreateController::class)->name('product.create');
+        Route::get('/', ProductListController::class)->name('product.list');
+        Route::get('/{item:uuid}', ProductShowController::class)->name('product.show');
+        Route::put('/{item:uuid}', ProductUpdateController::class)->name('product.update');
+        Route::put('/{item:uuid}/archive', ProductArchiveToggleController::class)->name('product.update.archive');
     });
 });
 

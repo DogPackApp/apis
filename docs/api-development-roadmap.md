@@ -119,11 +119,11 @@ The pieces a store configures before it can list anything for sale.
 
 An Item can't exist without a store to belong to, a section to sit in, and a policy governing returns/shipping.
 
-- [ ] `POST /product/` — create
-- [ ] `GET /product/` — list
-- [ ] `GET /product/{item:uuid}` — show
-- [ ] `PUT /product/{item:uuid}` — update
-- [ ] `PUT /product/{item:uuid}/archive`
+- [x] `POST /product/` — create — Phase 1 (Core Item) of `docs/product-module-plan.md`. Same exact nested validation as backend-api, only applied when `status == ACTIVE` (replicated byte-for-byte, including two duplicate-array-key bugs in backend-api's own rule set that silently drop rules — see comments in `ProductValidationRules`). `policy_id` is always null (no `policies` table yet); `ProductRepository::find()`/`delete()` weren't ported (dead code — calls relation names that don't exist on backend-api's own `Item` model).
+- [x] `GET /product/` — list
+- [x] `GET /product/{item:uuid}` — show
+- [x] `PUT /product/{item:uuid}` — update
+- [x] `PUT /product/{item:uuid}/archive`
 - [ ] `PUT /product/bulk/move`
 - [ ] `GET /product/category`
 - [ ] `GET /product/category/{category:uuid}/facets`
@@ -228,13 +228,13 @@ No build-order relevance; these aren't product features.
 | 1 — Seller | 16 | 16 |
 | 2 — Store | 4 | 6 |
 | 3 — Store composition | 0 | 45 |
-| 4 — Product | 0 | 14 |
+| 4 — Product | 5 | 14 |
 | 5 — Bulk/Import/Shopify | 0 | 10 |
 | 6 — Orders | 0 | 17 |
 | 7 — Post-purchase | 0 | 10 |
 | 8 — Money settlement | 0 | 10 |
 | 9 — Aggregation | 0 | 5 |
 | Ops/dev utilities | 0 | 8 |
-| **Total** | **23** | **145** |
+| **Total** | **28** | **145** |
 
 Tier 1 (Seller) is fully complete. Tier 2 (Store) has its core CRUD routes plus Stripe Connect done; admin revoke is the only remaining open item (Teams is out of scope, not open) before Tier 3 can meaningfully start.
