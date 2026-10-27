@@ -1,121 +1,185 @@
-name: Marketplace-API-STG Pipeline
+name: Marketplace-API-DEV Pipeline
 
 on:
   push:
-    branches: [ staging ]
+    branches:
+      - features/aws-dev-restructuring
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build-and-upload:
-    runs-on: [ marketplace-api-stg ]
-    environment: staging
+    runs-on: [gh-marketplace-api-dev]
+    environment: development
+    timeout-minutes: 45
+
+    env:
+      AWS_REGION: us-east-2
+      CODEDEPLOY_APPLICATION: dogpack-dev-use2-marketplace-api
+      CODEDEPLOY_DEPLOYMENT_GROUP: dogpack-dev-use2-marketplace-api-dg
+      ARTIFACT_PREFIX: code-deploy/marketplace-api
 
     steps:
 
       # ============================================================
-      # 1. Checkout
+      # 1. Checkout code
       # ============================================================
       - name: Checkout code
         uses: actions/checkout@v4
 
       # ============================================================
-      # 2. Restore Laravel Passport OAuth keys
+      # 2. Restore Laravel Passport keys for testing
       # ============================================================
       - name: Restore Passport OAuth keys
         env:
           PASSPORT_PRIVATE_KEY: ${{ secrets.PASSPORT_PRIVATE_KEY }}
           PASSPORT_PUBLIC_KEY: ${{ secrets.PASSPORT_PUBLIC_KEY }}
         run: |
+          set -euo pipefail
+
+          test -n "$PASSPORT_PRIVATE_KEY" || {
+            echo "ERROR: PASSPORT_PRIVATE_KEY is missing"
+            exit 1
+          }
+
+          test -n "$PASSPORT_PUBLIC_KEY" || {
+            echo "ERROR: PASSPORT_PUBLIC_KEY is missing"
+            exit 1
+          }
+
           mkdir -p storage
 
-          printf '%s\n' "$PASSPORT_PRIVATE_KEY" > storage/oauth-private.key
-          printf '%s\n' "$PASSPORT_PUBLIC_KEY" > storage/oauth-public.key
+          printf '%s\n' "$PASSPORT_PRIVATE_KEY" \
+            > storage/oauth-private.key
+
+          printf '%s\n' "$PASSPORT_PUBLIC_KEY" \
+            > storage/oauth-public.key
 
           chmod 600 storage/oauth-private.key
           chmod 600 storage/oauth-public.key
 
-          echo "Passport OAuth keys restored"
-
           test -s storage/oauth-private.key
           test -s storage/oauth-public.key
 
+          echo "Passport keys restored"
+
       # ============================================================
-      # 3. Create .env BEFORE running tests
+      # 3. Create .env from ENV_DEV JSON secret
       # ============================================================
       - name: Create .env file
         env:
-          ENV_JSON: ${{ secrets.ENV_STAGING }}
+          ENV_JSON: ${{ secrets.ENV_DEV }}
         run: |
-          echo "$ENV_JSON" > config.json
+          set -euo pipefail
 
-          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' \
-            config.json > .env
+          test -n "$ENV_JSON" || {
+            echo "ERROR: ENV_DEV secret is empty"
+            exit 1
+          }
 
-          rm -f config.json
+          printf '%s' "$ENV_JSON" > "$RUNNER_TEMP/env-dev.json"
+
+          jq -e 'type == "object"' \
+            "$RUNNER_TEMP/env-dev.json" > /dev/null
+
+          jq -r '
+            to_entries[]
+            | "\(.key)=\"\(
+                (.value | tostring)
+                | gsub("\\\\"; "\\\\\\\\")
+                | gsub("\""; "\\\"")
+                | gsub("\r"; "\\r")
+                | gsub("\n"; "\\n")
+              )\""
+          ' "$RUNNER_TEMP/env-dev.json" > .env
+
+          rm -f "$RUNNER_TEMP/env-dev.json"
+          chmod 600 .env
+
+          test -s .env
 
           echo ".env created successfully"
 
-          test -f .env
-
-
       # ============================================================
-      # 4. Install Composer dependencies
+      # 4. Install Composer dependencies for tests
       # ============================================================
       - name: Install Composer dependencies
         run: |
+          set -euo pipefail
+
+          composer validate --no-check-publish
+
           composer install \
             --no-interaction \
-            --prefer-dist
+            --prefer-dist \
+            --no-progress
 
       # ============================================================
-      # 5. Clear Laravel caches before tests
+      # 5. Clear Laravel caches
       # ============================================================
       - name: Clear Laravel caches
         run: |
+          set -euo pipefail
+
           php artisan config:clear
-          php artisan cache:clear || true
-          php artisan route:clear || true
-          php artisan view:clear || true
+          php artisan route:clear
+          php artisan view:clear
 
       # ============================================================
-      # 6. Verify Laravel environment
+      # 6. Verify Laravel environment and Passport keys
       # ============================================================
       - name: Verify Laravel environment
         run: |
-          echo "Checking Laravel application..."
+          set -euo pipefail
 
           php artisan --version
 
-          echo "Checking Passport keys..."
-
+          test -s .env
           test -s storage/oauth-private.key
           test -s storage/oauth-public.key
+
+          echo "Laravel environment verified"
 
       # ============================================================
       # 7. Run tests
       # ============================================================
       - name: Run tests
         run: |
+          set -euo pipefail
+
           composer test
 
       # ============================================================
-      # 8. Remove vendor from deployment artifact
+      # 8. Verify AWS identity and configuration
       # ============================================================
-      - name: Remove test dependencies from deploy artifact
+      - name: Verify AWS access
+        env:
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
         run: |
-          rm -rf vendor
+          set -euo pipefail
+
+          aws sts get-caller-identity \
+            --region "$AWS_REGION"
+
+          aws configure get region || true
+
+          echo "AWS identity verified"
 
       # ============================================================
       # 9. Generate unique artifact name
       # ============================================================
-      - name: Generate unique artifact name
+      - name: Generate artifact name
         id: artifact_name
         run: |
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          set -euo pipefail
+
+          TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
           COMMIT_SHA_SHORT=$(git rev-parse --short HEAD)
 
           UNIQUE_NAME="artifact_${TIMESTAMP}_${COMMIT_SHA_SHORT}"
@@ -125,109 +189,205 @@ jobs:
           echo "Artifact name: $UNIQUE_NAME"
 
       # ============================================================
-      # 10. Download deployment scripts from S3
+      # 10. Download CodeDeploy files from DEV S3 bucket
       # ============================================================
       - name: Download CodeDeploy files
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET_DEV }}
         run: |
+          set -euo pipefail
+
+          test -n "$S3_BUCKET" || {
+            echo "ERROR: S3_BUCKET_DEV secret is missing"
+            exit 1
+          }
+
           mkdir -p deploy
 
           aws s3 cp \
-            s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/appspec.yml \
-            deploy/appspec.yml
+            "s3://${S3_BUCKET}/code-deploy/marketplace-api/appspec.yml" \
+            deploy/appspec.yml \
+            --region "$AWS_REGION"
 
           aws s3 cp \
-            s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/beforeInstall \
-            deploy/beforeInstall
+            "s3://${S3_BUCKET}/code-deploy/marketplace-api/beforeInstall" \
+            deploy/beforeInstall \
+            --region "$AWS_REGION"
 
           aws s3 cp \
-            s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/applicationStart \
+            "s3://${S3_BUCKET}/code-deploy/marketplace-api/applicationStart" \
+            deploy/applicationStart \
+            --region "$AWS_REGION"
+
+          test -s deploy/appspec.yml
+          test -s deploy/beforeInstall
+          test -s deploy/applicationStart
+
+          chmod +x \
+            deploy/beforeInstall \
             deploy/applicationStart
 
-          chmod +x deploy/beforeInstall
-          chmod +x deploy/applicationStart
-
-          echo "CodeDeploy files downloaded"
+          echo "CodeDeploy files downloaded successfully"
 
       # ============================================================
-      # 11. Create deployment ZIP
+      # 11. Prepare a clean deployment package
       # ============================================================
-      - name: Create deployment artifact
+      - name: Prepare deployment package
+        env:
+          ARTIFACT_NAME: ${{ steps.artifact_name.outputs.unique_name }}
         run: |
-          cp deploy/appspec.yml .
-          cp deploy/beforeInstall .
-          cp deploy/applicationStart .
+          set -euo pipefail
 
-          chmod +x beforeInstall
-          chmod +x applicationStart
+          PACKAGE_DIR="$RUNNER_TEMP/marketplace-api-package"
+          ARTIFACT_PATH="$GITHUB_WORKSPACE/${ARTIFACT_NAME}.zip"
 
-          zip -r \
-            "${{ steps.artifact_name.outputs.unique_name }}.zip" \
-            . \
-            -x ".git/*" \
-            -x ".github/*" \
-            -x "deploy/*" \
-            -x "*.zip"
+          rm -rf "$PACKAGE_DIR"
+          mkdir -p "$PACKAGE_DIR"
 
-          echo "Deployment artifact created"
+          # Copy application source without GitHub or local dependencies.
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.env' \
+            --exclude='vendor/' \
+            --exclude='deploy/' \
+            --exclude='storage/oauth-private.key' \
+            --exclude='storage/oauth-public.key' \
+            --exclude='storage/logs/*' \
+            --exclude='bootstrap/cache/*.php' \
+            ./ "$PACKAGE_DIR/"
 
-          ls -lh \
-            "${{ steps.artifact_name.outputs.unique_name }}.zip"
+          # Include CodeDeploy configuration and lifecycle scripts.
+          cp deploy/appspec.yml "$PACKAGE_DIR/appspec.yml"
+          cp deploy/beforeInstall "$PACKAGE_DIR/beforeInstall"
+          cp deploy/applicationStart "$PACKAGE_DIR/applicationStart"
+
+          chmod +x \
+            "$PACKAGE_DIR/beforeInstall" \
+            "$PACKAGE_DIR/applicationStart"
+
+          # Never include .env or Passport private keys.
+          test ! -e "$PACKAGE_DIR/.env"
+          test ! -e "$PACKAGE_DIR/storage/oauth-private.key"
+          test ! -e "$PACKAGE_DIR/storage/oauth-public.key"
+
+          # Verify the expected application files.
+          test -s "$PACKAGE_DIR/composer.json"
+          test -s "$PACKAGE_DIR/composer.lock"
+          test -s "$PACKAGE_DIR/appspec.yml"
+
+          # Verify hook paths are present in appspec.yml.
+          grep -q 'beforeInstall' "$PACKAGE_DIR/appspec.yml"
+          grep -q 'applicationStart' "$PACKAGE_DIR/appspec.yml"
+
+          (
+            cd "$PACKAGE_DIR"
+            zip -qr "$ARTIFACT_PATH" .
+          )
+
+          test -s "$ARTIFACT_PATH"
+
+          echo "Deployment artifact created:"
+          ls -lh "$ARTIFACT_PATH"
 
       # ============================================================
-      # 12. Upload artifact to S3
+      # 12. Upload artifact to DEV S3
       # ============================================================
       - name: Upload artifact to S3
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET_DEV }}
+          ARTIFACT_NAME: ${{ steps.artifact_name.outputs.unique_name }}
         run: |
-          aws s3 cp \
-            "${{ steps.artifact_name.outputs.unique_name }}.zip" \
-            "s3://${{ secrets.S3_BUCKET_staging }}/staging/marketplace-api-stg/${{ steps.artifact_name.outputs.unique_name }}.zip"
+          set -euo pipefail
 
-          echo "Artifact uploaded to S3"
+          ARTIFACT_KEY="${ARTIFACT_PREFIX}/${ARTIFACT_NAME}.zip"
+
+          aws s3 cp \
+            "$GITHUB_WORKSPACE/${ARTIFACT_NAME}.zip" \
+            "s3://${S3_BUCKET}/${ARTIFACT_KEY}" \
+            --region "$AWS_REGION"
+
+          echo "Artifact uploaded successfully"
+          echo "S3 key: $ARTIFACT_KEY"
 
       # ============================================================
       # 13. Create CodeDeploy deployment
       # ============================================================
       - name: Create CodeDeploy deployment
         id: deploy
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET_DEV }}
+          ARTIFACT_NAME: ${{ steps.artifact_name.outputs.unique_name }}
         run: |
+          set -euo pipefail
+
+          ARTIFACT_KEY="${ARTIFACT_PREFIX}/${ARTIFACT_NAME}.zip"
+
           DEPLOYMENT_ID=$(aws deploy create-deployment \
-            --application-name marketplace-api-stg \
-            --deployment-group-name marketplace-api-stg-dg \
+            --application-name "$CODEDEPLOY_APPLICATION" \
+            --deployment-group-name "$CODEDEPLOY_DEPLOYMENT_GROUP" \
             --deployment-config-name CodeDeployDefault.AllAtOnce \
-            --s3-location bucket=${{ secrets.S3_BUCKET_staging }},key=staging/marketplace-api-stg/${{ steps.artifact_name.outputs.unique_name }}.zip,bundleType=zip \
-            --region us-east-1 \
+            --s3-location \
+              "bucket=${S3_BUCKET},key=${ARTIFACT_KEY},bundleType=zip" \
+            --region "$AWS_REGION" \
             --query 'deploymentId' \
             --output text)
+
+          test -n "$DEPLOYMENT_ID"
+          test "$DEPLOYMENT_ID" != "None"
 
           echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
 
           echo "CodeDeploy Deployment ID: $DEPLOYMENT_ID"
 
       # ============================================================
-      # 14. Wait for CodeDeploy
+      # 14. Wait for CodeDeploy to complete
       # ============================================================
       - name: Wait for deployment
+        env:
+          DEPLOYMENT_ID: ${{ steps.deploy.outputs.deployment_id }}
         run: |
+          set -euo pipefail
+
           echo "Waiting for CodeDeploy deployment..."
 
-          aws deploy wait deployment-successful \
-            --deployment-id "${{ steps.deploy.outputs.deployment_id }}" \
-            --region us-east-1
+          if ! aws deploy wait deployment-successful \
+            --deployment-id "$DEPLOYMENT_ID" \
+            --region "$AWS_REGION"; then
+
+            echo "ERROR: Deployment did not complete successfully"
+
+            aws deploy get-deployment \
+              --deployment-id "$DEPLOYMENT_ID" \
+              --region "$AWS_REGION" \
+              --query 'deploymentInfo.{Status:status,Error:errorInformation,Overview:deploymentOverview}' \
+              --output json || true
+
+            exit 1
+          fi
 
           echo "Deployment completed successfully"
 
       # ============================================================
-      # 15. Cleanup sensitive files and artifact
+      # 15. Cleanup sensitive files and build artifacts
       # ============================================================
       - name: Cleanup
         if: always()
+        env:
+          ARTIFACT_NAME: ${{ steps.artifact_name.outputs.unique_name }}
         run: |
-          rm -f \
-            storage/oauth-private.key \
-            storage/oauth-public.key \
-            config.json
+          set +e
 
           rm -f \
-            "${{ steps.artifact_name.outputs.unique_name }}.zip"
+            .env \
+            storage/oauth-private.key \
+            storage/oauth-public.key \
+            "$RUNNER_TEMP/env-dev.json"
+
+          if [ -n "$ARTIFACT_NAME" ]; then
+            rm -f "$GITHUB_WORKSPACE/${ARTIFACT_NAME}.zip"
+          fi
+
+          rm -rf "$RUNNER_TEMP/marketplace-api-package"
 
           echo "Cleanup completed"
