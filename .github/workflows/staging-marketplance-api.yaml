@@ -248,7 +248,6 @@ jobs:
           rsync -a \
             --exclude='.git/' \
             --exclude='.github/' \
-            --exclude='.env' \
             --exclude='vendor/' \
             --exclude='deploy/' \
             --exclude='storage/oauth-private.key' \
