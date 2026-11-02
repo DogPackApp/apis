@@ -47,7 +47,6 @@ jobs:
             echo "ERROR: PASSPORT_PRIVATE_KEY is missing"
             exit 1
           }
-
           test -n "$PASSPORT_PUBLIC_KEY" || {
             echo "ERROR: PASSPORT_PUBLIC_KEY is missing"
             exit 1
@@ -57,7 +56,6 @@ jobs:
 
           printf '%s\n' "$PASSPORT_PRIVATE_KEY" \
             > storage/oauth-private.key
-
           printf '%s\n' "$PASSPORT_PUBLIC_KEY" \
             > storage/oauth-public.key
 
@@ -101,7 +99,6 @@ jobs:
 
           rm -f "$RUNNER_TEMP/env-dev.json"
           chmod 600 .env
-
           test -s .env
 
           echo ".env created successfully"
@@ -114,7 +111,6 @@ jobs:
           set -euo pipefail
 
           composer validate --no-check-publish
-
           composer install \
             --no-interaction \
             --prefer-dist \
@@ -139,7 +135,6 @@ jobs:
           set -euo pipefail
 
           php artisan --version
-
           test -s .env
           test -s storage/oauth-private.key
           test -s storage/oauth-public.key
@@ -152,7 +147,6 @@ jobs:
       - name: Run tests
         run: |
           set -euo pipefail
-
           composer test
 
       # ============================================================
@@ -166,7 +160,6 @@ jobs:
 
           aws sts get-caller-identity \
             --region "$AWS_REGION"
-
           aws configure get region || true
 
           echo "AWS identity verified"
@@ -181,11 +174,9 @@ jobs:
 
           TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
           COMMIT_SHA_SHORT=$(git rev-parse --short HEAD)
-
           UNIQUE_NAME="artifact_${TIMESTAMP}_${COMMIT_SHA_SHORT}"
 
           echo "unique_name=$UNIQUE_NAME" >> "$GITHUB_OUTPUT"
-
           echo "Artifact name: $UNIQUE_NAME"
 
       # ============================================================
@@ -244,12 +235,13 @@ jobs:
           rm -rf "$PACKAGE_DIR"
           mkdir -p "$PACKAGE_DIR"
 
-          # Copy application source without GitHub or local dependencies.
+          # Copy application source without secrets or local dependencies.
           rsync -a \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='vendor/' \
             --exclude='deploy/' \
+            --exclude='.env' \
             --exclude='storage/oauth-private.key' \
             --exclude='storage/oauth-public.key' \
             --exclude='storage/logs/*' \
@@ -265,19 +257,31 @@ jobs:
             "$PACKAGE_DIR/beforeInstall" \
             "$PACKAGE_DIR/applicationStart"
 
-          # Never include .env or Passport private keys.
-          test ! -e "$PACKAGE_DIR/.env"
-          test ! -e "$PACKAGE_DIR/storage/oauth-private.key"
-          test ! -e "$PACKAGE_DIR/storage/oauth-public.key"
+          # Never include .env or Passport keys.
+          for f in .env storage/oauth-private.key storage/oauth-public.key; do
+            if [ -e "$PACKAGE_DIR/$f" ]; then
+              echo "ERROR: $f must not be in the package"
+              exit 1
+            fi
+          done
 
           # Verify the expected application files.
-          test -s "$PACKAGE_DIR/composer.json"
-          test -s "$PACKAGE_DIR/composer.lock"
-          test -s "$PACKAGE_DIR/appspec.yml"
+          for f in composer.json composer.lock appspec.yml; do
+            test -s "$PACKAGE_DIR/$f" || {
+              echo "ERROR: $f is missing from the package"
+              exit 1
+            }
+          done
 
           # Verify hook paths are present in appspec.yml.
-          grep -q 'beforeInstall' "$PACKAGE_DIR/appspec.yml"
-          grep -q 'applicationStart' "$PACKAGE_DIR/appspec.yml"
+          grep -q 'beforeInstall' "$PACKAGE_DIR/appspec.yml" || {
+            echo "ERROR: beforeInstall not referenced in appspec.yml"
+            exit 1
+          }
+          grep -q 'applicationStart' "$PACKAGE_DIR/appspec.yml" || {
+            echo "ERROR: applicationStart not referenced in appspec.yml"
+            exit 1
+          }
 
           (
             cd "$PACKAGE_DIR"
@@ -336,7 +340,6 @@ jobs:
           test "$DEPLOYMENT_ID" != "None"
 
           echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
-
           echo "CodeDeploy Deployment ID: $DEPLOYMENT_ID"
 
       # ============================================================
