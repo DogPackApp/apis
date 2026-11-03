@@ -1,0 +1,234 @@
+name: Marketplace-API-DEV Pipeline
+
+on:
+  push:
+    branches: [ features/aws-dev-restructuring ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-upload:
+    runs-on: [ gh-marketplace-api-dev ]
+    environment: development
+    timeout-minutes: 45
+
+    steps:
+
+      # ============================================================
+      # 1. Checkout
+      # ============================================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ============================================================
+      # 2. Restore Laravel Passport OAuth keys
+      # ============================================================
+      - name: Restore Passport OAuth keys
+        env:
+          PASSPORT_PRIVATE_KEY: ${{ secrets.PASSPORT_PRIVATE_KEY }}
+          PASSPORT_PUBLIC_KEY: ${{ secrets.PASSPORT_PUBLIC_KEY }}
+        run: |
+          mkdir -p storage
+
+          printf '%s\n' "$PASSPORT_PRIVATE_KEY" > storage/oauth-private.key
+          printf '%s\n' "$PASSPORT_PUBLIC_KEY" > storage/oauth-public.key
+
+          chmod 600 storage/oauth-private.key
+          chmod 600 storage/oauth-public.key
+
+          echo "Passport OAuth keys restored"
+
+          test -s storage/oauth-private.key
+          test -s storage/oauth-public.key
+
+      # ============================================================
+      # 3. Create .env BEFORE running tests
+      # ============================================================
+      - name: Create .env file
+        env:
+          ENV_JSON: ${{ secrets.ENV_DEV }}
+        run: |
+          echo "$ENV_JSON" > config.json
+
+          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' \
+            config.json > .env
+
+          rm -f config.json
+
+          echo ".env created successfully"
+
+          test -f .env
+
+
+      # ============================================================
+      # 4. Install Composer dependencies
+      # ============================================================
+      - name: Install Composer dependencies
+        run: |
+          composer install \
+            --no-interaction \
+            --prefer-dist
+
+      # ============================================================
+      # 5. Clear Laravel caches before tests
+      # ============================================================
+      - name: Clear Laravel caches
+        run: |
+          php artisan config:clear
+          php artisan cache:clear || true
+          php artisan route:clear || true
+          php artisan view:clear || true
+
+      # ============================================================
+      # 6. Verify Laravel environment
+      # ============================================================
+      - name: Verify Laravel environment
+        run: |
+          echo "Checking Laravel application..."
+
+          php artisan --version
+
+          echo "Checking Passport keys..."
+
+          test -s storage/oauth-private.key
+          test -s storage/oauth-public.key
+
+      # ============================================================
+      # 7. Run tests
+      # ============================================================
+      - name: Run tests
+        run: |
+          composer test
+
+      # ============================================================
+      # 8. Remove vendor from deployment artifact
+      # ============================================================
+      - name: Remove test dependencies from deploy artifact
+        run: |
+          rm -rf vendor
+
+      # ============================================================
+      # 9. Generate unique artifact name
+      # ============================================================
+      - name: Generate unique artifact name
+        id: artifact_name
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          COMMIT_SHA_SHORT=$(git rev-parse --short HEAD)
+
+          UNIQUE_NAME="artifact_${TIMESTAMP}_${COMMIT_SHA_SHORT}"
+
+          echo "unique_name=$UNIQUE_NAME" >> "$GITHUB_OUTPUT"
+
+          echo "Artifact name: $UNIQUE_NAME"
+
+      # ============================================================
+      # 10. Download deployment scripts from S3
+      # ============================================================
+      - name: Download CodeDeploy files
+        run: |
+          mkdir -p deploy
+
+          aws s3 cp \
+            s3://${{ secrets.S3_BUCKET_DEV }}/code-deploy/marketplace-api/appspec.yml \
+            deploy/appspec.yml
+
+          aws s3 cp \
+            s3://${{ secrets.S3_BUCKET_DEV }}/code-deploy/marketplace-api/beforeInstall \
+            deploy/beforeInstall
+
+          aws s3 cp \
+            s3://${{ secrets.S3_BUCKET_DEV }}/code-deploy/marketplace-api/applicationStart \
+            deploy/applicationStart
+
+          chmod +x deploy/beforeInstall
+          chmod +x deploy/applicationStart
+
+          echo "CodeDeploy files downloaded"
+
+      # ============================================================
+      # 11. Create deployment ZIP
+      # ============================================================
+      - name: Create deployment artifact
+        run: |
+          cp deploy/appspec.yml .
+          cp deploy/beforeInstall .
+          cp deploy/applicationStart .
+
+          chmod +x beforeInstall
+          chmod +x applicationStart
+
+          zip -r \
+            "${{ steps.artifact_name.outputs.unique_name }}.zip" \
+            . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x "deploy/*" \
+            -x "*.zip"
+
+          echo "Deployment artifact created"
+
+          ls -lh \
+            "${{ steps.artifact_name.outputs.unique_name }}.zip"
+
+      # ============================================================
+      # 12. Upload artifact to S3
+      # ============================================================
+      - name: Upload artifact to S3
+        run: |
+          aws s3 cp \
+            "${{ steps.artifact_name.outputs.unique_name }}.zip" \
+            "s3://${{ secrets.S3_BUCKET_DEV }}/dev/marketplace-api/${{ steps.artifact_name.outputs.unique_name }}.zip"
+
+          echo "Artifact uploaded to S3"
+
+      # ============================================================
+      # 13. Create CodeDeploy deployment
+      # ============================================================
+      - name: Create CodeDeploy deployment
+        id: deploy
+        run: |
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name dogpack-dev-use2-marketplace-api \
+            --deployment-group-name dogpack-dev-use2-marketplace-api-dg \
+            --deployment-config-name CodeDeployDefault.AllAtOnce \
+            --s3-location bucket=${{ secrets.S3_BUCKET_DEV }},key=dev/marketplace-api/${{ steps.artifact_name.outputs.unique_name }}.zip,bundleType=zip \
+            --region us-east-2 \
+            --query 'deploymentId' \
+            --output text)
+
+          echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+
+          echo "CodeDeploy Deployment ID: $DEPLOYMENT_ID"
+
+      # ============================================================
+      # 14. Wait for CodeDeploy
+      # ============================================================
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for CodeDeploy deployment..."
+
+          aws deploy wait deployment-successful \
+            --deployment-id "${{ steps.deploy.outputs.deployment_id }}" \
+            --region us-east-2
+
+          echo "Deployment completed successfully"
+
+      # ============================================================
+      # 15. Cleanup sensitive files and artifact
+      # ============================================================
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f \
+            storage/oauth-private.key \
+            storage/oauth-public.key \
+            config.json
+
+          rm -f \
+            "${{ steps.artifact_name.outputs.unique_name }}.zip"
+
+          echo "Cleanup completed"
