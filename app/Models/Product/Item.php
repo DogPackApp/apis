@@ -2,13 +2,16 @@
 
 namespace App\Models\Product;
 
+use App\Models\Store\Section;
 use App\Models\Store\Store;
 use Database\Factories\ItemFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -118,6 +121,25 @@ class Item extends Model
     public function price(): HasOne
     {
         return $this->hasOne(ItemPrice::class);
+    }
+
+    public function medias(): BelongsToMany
+    {
+        return $this->belongsToMany(Gallery::class, 'item_medias', 'item_id', 'gallery_id')
+            ->whereNull('item_medias.item_variant_id')
+            ->withPivot('order')
+            ->orderBy('item_medias.order', 'asc');
+    }
+
+    public function media(): HasOneThrough
+    {
+        return $this->hasOneThrough(Gallery::class, ItemMedia::class, 'item_id', 'id', 'id', 'gallery_id')
+            ->where('order', 0);
+    }
+
+    public function sections(): BelongsToMany
+    {
+        return $this->belongsToMany(Section::class);
     }
 
     public function isShopifyProduct(): bool

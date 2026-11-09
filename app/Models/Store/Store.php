@@ -102,6 +102,14 @@ class Store extends Model
         return $this->hasOne(ShippingAddress::class, 'store_id');
     }
 
+    public static function _defaultStoreSection(): ?Model
+    {
+        return Section::query()
+            ->where('store_id', resolve(self::class)->id)
+            ->where('slug', 'all')
+            ->first();
+    }
+
     protected function image(): Attribute
     {
         return Attribute::make(

@@ -5,16 +5,16 @@ Opened 9 Nov 2026. Update the Status column in this file only.
 
 Seller panel means the routes the seller dashboard calls: `auth:marketplace` routes in `backend-api/routes/marketplace/marketplace.php`, plus `routes/seller-panel/seller-panel-routes.php` and the Shopify credential-refresh cron.
 
-Buyer routes, `auth.super` admin tools, the Shopify microservice, and one-off migration scripts stay in `backend-api`.
+Buyer routes, `auth.super` admin tools, the Shopify microservice, one-off migration scripts, and team management stay in `backend-api`.
 
-Status values: `Not started` · `Partial` · `Done`
+Status values: `Not started` · `Partial` · `Done` · `Out`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 4 | 30 |
+| Done | 5 | 40 |
 | Partial | 2 | — |
-| Not started | 13 | — |
-| **Total** | **19** | **146** |
+| Not started | 11 | — |
+| **In scope** | **18** | **141** |
 
 Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backend-api` serves the same seller panel under `/api/marketplace/*`.
 
@@ -26,8 +26,8 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 2 | Seller account | 11 | 11 | Done | Register, login, OTP, Google, forgot/reset password, me, logout, verify, onboarding, profile update |
 | 3 | Seller security | 5 | 5 | Done | Current password, change password, 2FA send / enable / disable |
 | 4 | Store | 4 | 4 | Done | Show, create, update, and store address |
-| 5 | Teams | 5 | 0 | Not started | List, add, remove, accept invite, invite status |
-| 6 | Catalog sections | 10 | 0 | Not started | Create, list, update, delete, move, reorder, section items |
+| 5 | ~~Teams~~ | 5 | — | Out | Not moving. List, add, remove, accept invite, and invite status stay in `backend-api`. |
+| 6 | Catalog sections | 10 | 10 | Done | Create, list, update, delete, move, reorder, section items. Follow-ups are in `docs/catalog-sections-todo.md`. |
 | 7 | Policies | 8 | 0 | Not started | Return/shipping policy CRUD, default flag, policy items |
 | 8 | Shipping and packaging | 8 | 0 | Not started | Rates, packaging, custom methods, address autocomplete and places |
 | 9 | Products | 11 | 5 | Partial | Create, list, show, update, and archive are in. Bulk move, categories, facets, AI description, category recognition, and CSV export are not. |
