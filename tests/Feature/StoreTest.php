@@ -3,6 +3,7 @@
 use App\Mail\SellerWelcomeEmail;
 use App\Models\Seller\OnboardingStatus;
 use App\Models\Seller\Seller;
+use App\Models\Store\ShippingAddress;
 use App\Models\Store\Store;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -139,4 +140,81 @@ test('store show returns not found when seller has no store', function () {
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
     $this->getJson('/api/seller/store')->assertNotFound();
+});
+
+test('store address requires authentication', function () {
+    $this->getJson('/api/seller/store/address')->assertUnauthorized();
+});
+
+test('store address returns not found when seller has no store', function () {
+    $seller = Seller::factory()->verified()->create();
+    Passport::actingAs($seller, ['seller'], 'marketplace');
+
+    $this->getJson('/api/seller/store/address')
+        ->assertNotFound()
+        ->assertJsonPath('message', 'Store not found.');
+});
+
+test('store address returns an empty data object when the store has no address', function () {
+    $seller = Seller::factory()->verified()->create();
+    Store::factory()->create(['seller_id' => $seller->id]);
+    Passport::actingAs($seller, ['seller'], 'marketplace');
+
+    $this->getJson('/api/seller/store/address')
+        ->assertOk()
+        ->assertExactJson(['data' => []]);
+});
+
+test('store address returns the saved shipping address', function () {
+    $seller = Seller::factory()->verified()->create();
+    $store = Store::factory()->create(['seller_id' => $seller->id]);
+    $address = ShippingAddress::query()->create([
+        'store_id' => $store->id,
+        'address' => '123 King St, Toronto, ON',
+        'street1' => '123 King St',
+        'street2' => null,
+        'zipcode' => 'M5H 1A1',
+        'city' => 'Toronto',
+        'country' => 'Canada',
+        'province' => 'ON',
+        'latitude' => '43.65',
+        'longitude' => '-79.38',
+    ]);
+
+    Passport::actingAs($seller, ['seller'], 'marketplace');
+
+    $this->getJson('/api/seller/store/address')
+        ->assertOk()
+        ->assertJsonPath('data.uuid', $address->uuid)
+        ->assertJsonPath('data.address', '123 King St, Toronto, ON')
+        ->assertJsonPath('data.street1', '123 King St')
+        ->assertJsonPath('data.street2', null)
+        ->assertJsonPath('data.zipcode', 'M5H 1A1')
+        ->assertJsonPath('data.city', 'Toronto')
+        ->assertJsonPath('data.country', 'Canada')
+        ->assertJsonPath('data.latitude', 43.65)
+        ->assertJsonPath('data.longitude', -79.38)
+        ->assertJsonMissingPath('data.province')
+        ->assertJsonMissingPath('data.easypost_id');
+});
+
+test('store address ignores a soft-deleted shipping address', function () {
+    $seller = Seller::factory()->verified()->create();
+    $store = Store::factory()->create(['seller_id' => $seller->id]);
+    $address = ShippingAddress::query()->create([
+        'store_id' => $store->id,
+        'address' => '123 King St, Toronto, ON',
+        'street1' => '123 King St',
+        'zipcode' => 'M5H 1A1',
+        'city' => 'Toronto',
+        'country' => 'Canada',
+        'province' => 'ON',
+    ]);
+    $address->delete();
+
+    Passport::actingAs($seller, ['seller'], 'marketplace');
+
+    $this->getJson('/api/seller/store/address')
+        ->assertOk()
+        ->assertExactJson(['data' => []]);
 });

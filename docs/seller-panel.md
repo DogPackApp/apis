@@ -11,8 +11,8 @@ Status values: `Not started` · `Partial` · `Done`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 3 | 29 |
-| Partial | 3 | — |
+| Done | 4 | 30 |
+| Partial | 2 | — |
 | Not started | 13 | — |
 | **Total** | **19** | **146** |
 
@@ -25,7 +25,7 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 1 | Reference data | 4 | 4 | Done | Country, state, currency, and language |
 | 2 | Seller account | 11 | 11 | Done | Register, login, OTP, Google, forgot/reset password, me, logout, verify, onboarding, profile update |
 | 3 | Seller security | 5 | 5 | Done | Current password, change password, 2FA send / enable / disable |
-| 4 | Store | 4 | 3 | Partial | Show, create, and update are in. Store address is not. |
+| 4 | Store | 4 | 4 | Done | Show, create, update, and store address |
 | 5 | Teams | 5 | 0 | Not started | List, add, remove, accept invite, invite status |
 | 6 | Catalog sections | 10 | 0 | Not started | Create, list, update, delete, move, reorder, section items |
 | 7 | Policies | 8 | 0 | Not started | Return/shipping policy CRUD, default flag, policy items |

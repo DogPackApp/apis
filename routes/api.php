@@ -25,6 +25,7 @@ use App\Http\Controllers\Seller\SellerTwoFactorEnableController;
 use App\Http\Controllers\Seller\SellerTwoFactorOtpController;
 use App\Http\Controllers\Seller\SellerUpdateController;
 use App\Http\Controllers\Seller\SellerVerifyController;
+use App\Http\Controllers\Seller\StoreAddressShowController;
 use App\Http\Controllers\Seller\StoreCreateController;
 use App\Http\Controllers\Seller\StoreShowController;
 use App\Http\Controllers\Seller\StoreStripeConnectController;
@@ -44,6 +45,7 @@ Route::prefix('seller')->group(function () {
     // Store — registered before the /{seller:uuid} wildcard below, so PUT /store
     // isn't swallowed by it.
     Route::middleware(['auth:marketplace'])->group(function () {
+        Route::get('/store/address', StoreAddressShowController::class)->name('seller.store.address.show');
         Route::get('/store', StoreShowController::class)->name('seller.store.show');
         Route::post('/store', StoreCreateController::class)->name('seller.store.create');
         Route::put('/store', StoreUpdateController::class)->name('seller.store.update');
