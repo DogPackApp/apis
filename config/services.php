@@ -63,5 +63,7 @@ return [
     'website_assets_url' => env('WEBSITE_ASSETS_URL'),
     'support_phone' => env('SUPPORT_PHONE'),
     'DOGPACK_EMAIL' => env('DOGPACK_EMAIL'),
+    'marketplace_google_api' => env('MARKETPLACE_GOOGLE_API'),
+    'marketplace_easypost_api' => env('MARKETPLACE_EASYPOST_API'),
 
 ];

@@ -40,6 +40,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/seller/policies.php'));
 
             Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/shipping.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
                 ->prefix('api/misc')
                 ->group(base_path('routes/misc.php'));
         },

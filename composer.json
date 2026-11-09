@@ -32,7 +32,8 @@
         "psr-4": {
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/"
+            "Database\\Seeders\\": "database/seeders/",
+            "EasyPost\\Exception\\Api\\": "app/Support/EasyPost/Exception/Api/"
         }
     },
     "autoload-dev": {

@@ -62,6 +62,13 @@ class OnboardingService
         return true;
     }
 
+    public function completeShipping(Seller $seller): int
+    {
+        return OnboardingStatus::query()
+            ->where('seller_id', $seller->id)
+            ->update(['is_shipping' => 1]);
+    }
+
     public function completeStoreSetting(Seller $seller): int
     {
         return OnboardingStatus::query()

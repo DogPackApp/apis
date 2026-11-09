@@ -11,9 +11,9 @@ Status values: `Not started` · `Partial` · `Done` · `Out`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 6 | 48 |
+| Done | 7 | 56 |
 | Partial | 2 | — |
-| Not started | 10 | — |
+| Not started | 9 | — |
 | **In scope** | **18** | **141** |
 
 Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backend-api` serves the same seller panel under `/api/marketplace/*`.
@@ -29,7 +29,7 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 5 | ~~Teams~~ | 5 | — | Out | Not moving. List, add, remove, accept invite, and invite status stay in `backend-api`. |
 | 6 | Catalog sections | 10 | 10 | Done | Create, list, update, delete, move, reorder, section items. Follow-ups are in `docs/catalog-sections-todo.md`. |
 | 7 | Policies | 8 | 8 | Done | Create, list, show, update, delete, default flag, and policy items. Follow-ups are in `docs/policies-todo.md`. |
-| 8 | Shipping and packaging | 8 | 0 | Not started | Rates, packaging, custom methods, address autocomplete and places |
+| 8 | Shipping and packaging | 8 | 8 | Done | Rates, packaging, custom methods, address autocomplete and places. Follow-ups are in `docs/shipping-packaging-todo.md`. |
 | 9 | Products | 11 | 5 | Partial | Create, list, show, update, and archive are in. Bulk move, categories, facets, AI description, category recognition, and CSV export are not. |
 | 10 | Import, bulk edit, and media | 8 | 0 | Not started | CSV import (4), bulk list/update (2), store gallery (1), S3 presigned upload (1) |
 | 11 | Orders and EasyPost labels | 16 | 0 | Not started | Seller orders, cancel, partial refund, packing slip, timeline and email render (12). EasyPost rates, buy, void, webhook (4) |
@@ -41,3 +41,18 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 17 | Subscribe & Save seller setting | 1 | 0 | Not started | Seller allowed percents |
 | 18 | Shopify connect | 12 | 0 | Not started | OAuth, install, link, resync, category and policy mapping, credential refresh |
 | 19 | Master login | 2 | 0 | Not started | Staff login into a seller panel, and its OTP |
+
+## Missing features
+
+These are pieces of `backend-api` that the ported routes still do not have. Copied bugs stay in the module notes linked above.
+
+| Feature | Where | What's missing |
+|---|---|---|
+| EasyPost SDK | Shipping places, orders | `POST /shipping/address/places` posts the address to the EasyPost HTTP API and stores `easypost_id`. The PHP SDK is not installed. Label rates, buy, void, and the webhook are still in the orders module. |
+| ConvertTimeZone | Sections, policies, shipping | Responses do not include the converted timestamps from that trait. |
+| `mysql_reader` | Sections, shipping | This app has no reader connection. Those queries use the default database connection. |
+| Product payload | Sections, policies | Item lists use this app's `ProductResource`. Media, variants, tags, sections, and policy are not in that JSON. |
+| Gallery and CloudFront | Sections | `galleries` and `item_medias` exist so the eager load can run. The gallery API and the CloudFront `url` accessor are not ported. |
+| Redis cache flush | Shipping save | `forgetAllByPattern()` expects Redis. Only that method was ported, and the test cache is the array store. |
+| Support-phone email partial | Shipping places | The invalid-address email does not include `marketplace.emails.partials.support-phone`. |
+| `product_policies` | Policies | That table is unused by the policy endpoints in `backend-api`. It was not created. Items are linked with `items.policy_id`. |
