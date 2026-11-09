@@ -62,6 +62,13 @@ class OnboardingService
         return true;
     }
 
+    public function completeStoreSetting(Seller $seller): int
+    {
+        return OnboardingStatus::query()
+            ->where('seller_id', $seller->id)
+            ->update(['is_store_setting' => 1]);
+    }
+
     public function fetchOnboardingStatus(Seller $seller): OnboardingStatus|Model|null
     {
         return OnboardingStatus::query()

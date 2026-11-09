@@ -2,6 +2,7 @@
 
 namespace App\Models\Product;
 
+use App\Models\Store\Policy;
 use App\Models\Store\Section;
 use App\Models\Store\Store;
 use Database\Factories\ItemFactory;
@@ -116,6 +117,11 @@ class Item extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function policy(): BelongsTo
+    {
+        return $this->belongsTo(Policy::class);
     }
 
     public function price(): HasOne

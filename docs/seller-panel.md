@@ -11,9 +11,9 @@ Status values: `Not started` · `Partial` · `Done` · `Out`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 5 | 40 |
+| Done | 6 | 48 |
 | Partial | 2 | — |
-| Not started | 11 | — |
+| Not started | 10 | — |
 | **In scope** | **18** | **141** |
 
 Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backend-api` serves the same seller panel under `/api/marketplace/*`.
@@ -28,7 +28,7 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 4 | Store | 4 | 4 | Done | Show, create, update, and store address |
 | 5 | ~~Teams~~ | 5 | — | Out | Not moving. List, add, remove, accept invite, and invite status stay in `backend-api`. |
 | 6 | Catalog sections | 10 | 10 | Done | Create, list, update, delete, move, reorder, section items. Follow-ups are in `docs/catalog-sections-todo.md`. |
-| 7 | Policies | 8 | 0 | Not started | Return/shipping policy CRUD, default flag, policy items |
+| 7 | Policies | 8 | 8 | Done | Create, list, show, update, delete, default flag, and policy items. Follow-ups are in `docs/policies-todo.md`. |
 | 8 | Shipping and packaging | 8 | 0 | Not started | Rates, packaging, custom methods, address autocomplete and places |
 | 9 | Products | 11 | 5 | Partial | Create, list, show, update, and archive are in. Bulk move, categories, facets, AI description, category recognition, and CSV export are not. |
 | 10 | Import, bulk edit, and media | 8 | 0 | Not started | CSV import (4), bulk list/update (2), store gallery (1), S3 presigned upload (1) |
