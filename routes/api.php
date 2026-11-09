@@ -3,6 +3,7 @@
 use App\Http\Controllers\Misc\CountryListController;
 use App\Http\Controllers\Misc\CurrencyListController;
 use App\Http\Controllers\Misc\LanguageListController;
+use App\Http\Controllers\Misc\StateListController;
 use App\Http\Controllers\Product\ProductArchiveToggleController;
 use App\Http\Controllers\Product\ProductCreateController;
 use App\Http\Controllers\Product\ProductListController;
@@ -77,6 +78,7 @@ Route::prefix('seller')->group(function () {
 
 Route::prefix('misc')->middleware(['auth:marketplace'])->group(function () {
     Route::get('/country', CountryListController::class)->name('misc.country.list');
+    Route::get('/state', StateListController::class)->name('misc.state.list');
     Route::get('/currency', CurrencyListController::class)->name('misc.currency.list');
     Route::get('/language', LanguageListController::class)->name('misc.language.list');
 });

@@ -11,8 +11,8 @@ Status values: `Not started` · `Partial` · `Done`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 2 | 28 |
-| Partial | 4 | — |
+| Done | 3 | 29 |
+| Partial | 3 | — |
 | Not started | 13 | — |
 | **Total** | **19** | **146** |
 
@@ -22,7 +22,7 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 
 | # | Module | Routes | Done | Status | What it covers |
 |---|---|---|---|---|---|
-| 1 | Reference data | 4 | 3 | Partial | Country, currency, and language are in. State is not. |
+| 1 | Reference data | 4 | 4 | Done | Country, state, currency, and language |
 | 2 | Seller account | 11 | 11 | Done | Register, login, OTP, Google, forgot/reset password, me, logout, verify, onboarding, profile update |
 | 3 | Seller security | 5 | 5 | Done | Current password, change password, 2FA send / enable / disable |
 | 4 | Store | 4 | 3 | Partial | Show, create, and update are in. Store address is not. |
