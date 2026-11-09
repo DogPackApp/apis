@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -11,6 +12,33 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function () {
+            Route::middleware(['api', 'throttle:seller-auth'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/auth.php'));
+
+            // Store is registered before account. PUT /api/seller/{seller:uuid} would
+            // otherwise match PUT /api/seller/store.
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/store.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/account.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/products.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/sections.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/misc')
+                ->group(base_path('routes/misc.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // The app sits behind an AWS ALB that terminates TLS and forwards plain
