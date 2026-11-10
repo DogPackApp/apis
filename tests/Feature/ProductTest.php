@@ -580,3 +580,44 @@ test('updating a product stores a discount and customization', function () {
     expect($item->customization)->toBeNull()
         ->and($item->discount)->toBeNull();
 });
+
+test('creating a product stores the price and variant gtin', function () {
+    [, $store] = actingSeller();
+    $category = makeCategory();
+
+    $this->postJson('/api/seller/product', activeProductPayload($category, [
+        'price_inventory' => ['gtin' => '012345678905'],
+        'item_variations' => [
+            'variants' => [
+                ['name' => 'Size', 'options' => ['Small']],
+            ],
+            'combination' => [
+                [
+                    'variants' => [['type' => 'Size', 'value' => 'Small']],
+                    'domestic_price' => 8,
+                    'sku' => 'CHEW-S',
+                    'gtin' => '012345678912',
+                    'is_visible' => true,
+                ],
+            ],
+            'vary_by' => [
+                'sku' => true,
+                'quantity' => false,
+                'price' => true,
+                'weight' => false,
+            ],
+        ],
+    ]))->assertCreated();
+
+    $item = Item::query()->where('store_id', $store->id)->first();
+
+    expect($item->price->gtin)->toBe('012345678905')
+        ->and($item->variants()->first()->gtin)->toBe('012345678912');
+
+    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+        'about' => ['is_description_edited' => false],
+        'price_inventory' => ['gtin' => '099999999999'],
+    ]))->assertOk();
+
+    expect($item->price()->first()->gtin)->toBe('099999999999');
+});

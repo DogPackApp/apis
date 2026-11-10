@@ -12,6 +12,7 @@ class ItemPrice extends Model
         'uuid',
         'item_id',
         'sku',
+        'gtin',
         'domestic_price',
         'global_price',
         'is_global_pricing',

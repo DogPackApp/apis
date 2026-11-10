@@ -126,6 +126,9 @@ class ProductRepository
 
         $price->item_id = $item->id;
         $price->sku = $data['price_inventory']['sku'] ?? null;
+        if (array_key_exists('gtin', $data['price_inventory'] ?? [])) {
+            $price->gtin = $data['price_inventory']['gtin'];
+        }
         $price->is_global_pricing = $data['price_inventory']['is_global_pricing'] ? 1 : 0;
         $price->domestic_price = $this->lowestVariantPrice ?? $data['price_inventory']['domestic_price'] * 100;
         $price->global_price = $data['price_inventory']['global_price']
