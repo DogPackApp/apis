@@ -20,6 +20,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'status', type: 'integer'),
         new OA\Property(property: 'states', type: 'string', enum: ['PENDING', 'ACTIVE', 'INACTIVE']),
         new OA\Property(property: 'timezone', type: 'string', example: 'America/Toronto'),
+        new OA\Property(property: 'country_id', type: 'integer', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
     ]
@@ -42,6 +43,7 @@ class StoreResource extends JsonResource
             'status' => $this->status,
             'states' => $this->states,
             'timezone' => $this->timezone,
+            'country_id' => $this->country_id,
             'updated_at' => Timezone::convert($this->updated_at, $this->timezone)?->format('Y-m-d H:i:s'),
             'created_at' => Timezone::convert($this->created_at, $this->timezone)?->format('Y-m-d H:i:s'),
         ];

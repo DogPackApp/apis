@@ -2,6 +2,9 @@
 
 namespace App\Support;
 
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
 class Media
 {
     public static function url(?string $path): ?string
@@ -14,6 +17,17 @@ class Media
             return $path;
         }
 
-        return rtrim((string) config('services.marketplace_media'), '/').'/'.ltrim($path, '/');
+        $cdn = config('services.marketplace_media');
+
+        if ($cdn) {
+            return rtrim((string) $cdn, '/').'/'.ltrim($path, '/');
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    public static function store(UploadedFile $file, string $directory): string
+    {
+        return $file->store($directory, 'public');
     }
 }

@@ -2,6 +2,7 @@
 
 use App\Enums\OnboardingStep;
 use App\Models\Seller\Seller;
+use App\Models\Store\Store;
 use App\Services\OnboardingService;
 use Tests\Concerns\InteractsWithSellerAuth;
 
@@ -32,6 +33,21 @@ test('completing a step flips only that flag', function () {
 
     expect($onboarding->is_product)->toBe(1)
         ->and($onboarding->is_shipping)->toBe(0);
+});
+
+test('completing a step with a store links store_id once', function () {
+    $seller = Seller::factory()->create();
+    $store = Store::factory()->create(['seller_id' => $seller->id]);
+    $otherStore = Store::factory()->create();
+    $service = new OnboardingService;
+    $service->initiateOnboarding($seller);
+
+    $onboarding = $service->complete($seller, OnboardingStep::StoreSetting, $store);
+    expect($onboarding->store_id)->toBe($store->id);
+
+    // store_id is set once and not overwritten by a later call with a different store.
+    $onboarding = $service->complete($seller, OnboardingStep::Finance, $otherStore);
+    expect($onboarding->store_id)->toBe($store->id);
 });
 
 test('onboarding is complete only once every step is done', function () {

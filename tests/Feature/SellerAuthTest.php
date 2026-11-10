@@ -66,6 +66,37 @@ test('seller login returns a token when 2fa is disabled', function () {
         ->assertJsonStructure(['token']);
 });
 
+test('seller login rejects a seller whose store is inactive', function () {
+    $seller = Seller::factory()->verified()->create([
+        'email' => 'blocked-seller@example.com',
+    ]);
+    Store::factory()->create([
+        'seller_id' => $seller->id,
+        'states' => Store::STATES_INACTIVE,
+    ]);
+
+    $this->postJson('/api/seller/login', [
+        'email' => $seller->email,
+        'password' => 'password',
+    ])->assertUnauthorized()
+        ->assertJsonPath('message', fn ($message) => str_contains($message, 'Your account is blocked'));
+});
+
+test('seller login allows a seller whose store is active', function () {
+    $seller = Seller::factory()->verified()->create([
+        'email' => 'active-store-seller@example.com',
+    ]);
+    Store::factory()->create([
+        'seller_id' => $seller->id,
+        'states' => Store::STATES_ACTIVE,
+    ]);
+
+    $this->postJson('/api/seller/login', [
+        'email' => $seller->email,
+        'password' => 'password',
+    ])->assertOk();
+});
+
 test('seller login sends otp when 2fa is enabled', function () {
     Mail::fake();
 

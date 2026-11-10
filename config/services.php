@@ -34,11 +34,28 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
         'seller_auth_webhook' => env('SLACK_SELLER_AUTH_WEBHOOK'),
+        'webhook_url' => env('SLACK_ORDER_PLACE_FAILED_WEBHOOK', ''),
     ],
 
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+    ],
+
+    'marketplace_stripe' => [
+        'key' => env('MARKETPLACE_STRIPE_KEY'),
+        'public_key' => env('MARKETPLACE_STRIPE_PUBLIC_KEY'),
+        'wb_secret' => env('MARKETPLACE_STRIPE_WS_SECRET'),
+        'wb_secret_subscription' => env('MARKETPLACE_STRIPE_WS_SECRET_SUBSCRIPTION'),
+        'wb_stripe_payment_capture' => env('MARKETPLACE_STRIPE_WS_SECRET_PAYMENT_CAPTURE'),
+    ],
+
+    'marketplace_stripe_uk' => [
+        'key' => env('MARKETPLACE_STRIPE_UK_KEY'),
+        'public_key' => env('MARKETPLACE_STRIPE_UK_PUBLIC_KEY'),
+        'wb_secret' => env('MARKETPLACE_STRIPE_UK_WS_SECRET'),
+        'wb_secret_subscription' => env('MARKETPLACE_STRIPE_UK_WS_SECRET_SUBSCRIPTION'),
+        'wb_stripe_payment_capture' => env('MARKETPLACE_STRIPE_UK_WS_SECRET_PAYMENT_CAPTURE'),
     ],
 
     'marketplace_fe_url' => env('MARKETPLACE_FE_URL'),
@@ -47,5 +64,17 @@ return [
     'website_assets_url' => env('WEBSITE_ASSETS_URL'),
     'support_phone' => env('SUPPORT_PHONE'),
     'DOGPACK_EMAIL' => env('DOGPACK_EMAIL'),
+    'marketplace_google_api' => env('MARKETPLACE_GOOGLE_API'),
+
+    'google_translate' => [
+        'api_key' => env('GOOGLE_TRANSLATE_API_KEY'),
+    ],
+    'marketplace_easypost_api' => env('MARKETPLACE_EASYPOST_API'),
+
+    'open_ai' => [
+        'ai_product_description_key' => env('OPEN_AI_PRODUCT_DESCRIPTION_KEY'),
+        'category_key' => env('OPEN_AI_PRODUCT_CATEGORY_KEY'),
+        'facet_classification_key' => env('OPEN_AI_KEY_FACET_CLASSIFICATION'),
+    ],
 
 ];
