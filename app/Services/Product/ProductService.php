@@ -8,15 +8,30 @@ use App\Repository\Product\ProductRepository;
 
 class ProductService
 {
+    private ?Store $store = null;
+
     public function __construct(private readonly ProductRepository $productRepository) {}
 
-    public function createProduct(Store $store, array $data): Item
+    public function setStore(Store $store): void
     {
-        return $this->productRepository->create($store, $data);
+        $this->store = $store;
     }
 
-    public function updateProduct(Store $store, Item $item, array $data): Item
+    public function createProduct(Store|array $store, ?array $data = null): Item
     {
-        return $this->productRepository->update($store, $item, $data);
+        if (is_array($store)) {
+            return $this->productRepository->create($this->store, $store);
+        }
+
+        return $this->productRepository->create($store, $data ?? []);
+    }
+
+    public function updateProduct(Store|Item $store, Item|array $item, ?array $data = null): Item
+    {
+        if ($store instanceof Item) {
+            return $this->productRepository->update($this->store, $store, $item);
+        }
+
+        return $this->productRepository->update($store, $item, $data ?? []);
     }
 }

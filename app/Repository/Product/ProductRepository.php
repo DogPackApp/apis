@@ -10,6 +10,7 @@ use App\Models\Product\Customization;
 use App\Models\Product\Discount;
 use App\Models\Product\Gallery;
 use App\Models\Product\Item;
+use App\Models\Product\ItemCsv;
 use App\Models\Product\ItemMedia;
 use App\Models\Product\ItemPrice;
 use App\Models\Product\ItemVariant;
@@ -48,6 +49,10 @@ class ProductRepository
         $this->saveDiscount($data, $item);
         $this->verifyOnboarding($store, $item);
 
+        if (! empty($data['product_id'])) {
+            $this->attachProductId($data, $item);
+        }
+
         return $item;
     }
 
@@ -64,6 +69,45 @@ class ProductRepository
         $this->attachTags($store, $data, $item);
         $this->addItemToSection($store, $item, $data['section'] ?? null);
         $this->saveDiscount($data, $item);
+        $this->verifyOnboarding($store, $item);
+
+        return $item;
+    }
+
+    public function updateBulk(Store $store, Item $item, array $data): Item
+    {
+        $this->lowestVariantPrice = null;
+
+        $item = $this->updateBulkItem($store, $data, $item);
+
+        if (isset($data['about']['images'])) {
+            $this->attachImagesToProduct($data, $item);
+        }
+
+        if (isset($data['item_variations']['combination'])) {
+            $this->updateBulkVariants($data, $item);
+        }
+
+        if (isset($data['price_inventory'])) {
+            $this->attachPrice($data, $item, true);
+        }
+
+        if (isset($data['about']['customizations'])) {
+            $this->attachBulkCustomization($data, $item);
+        }
+
+        if (isset($data['category_tags']['tags'])) {
+            $this->attachTags($store, $data, $item);
+        }
+
+        if (isset($data['section'])) {
+            $this->addItemToSection($store, $item, $data['section']);
+        }
+
+        if (isset($data['discount'])) {
+            $this->saveDiscount($data, $item);
+        }
+
         $this->verifyOnboarding($store, $item);
 
         return $item;
@@ -791,5 +835,162 @@ class ProductRepository
         }
 
         return $slug;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function updateBulkItem(Store $store, array $data, Item $item): Item
+    {
+        if (isset($data['about']['title'])) {
+            $item->title = $data['about']['title'];
+        }
+        if (isset($data['about']['description'])) {
+            $item->description = $this->cleanDescription($data['about']['description']);
+        }
+        if (isset($data['about']['origin'])) {
+            $item->origin = $data['about']['origin'];
+        }
+        if (isset($data['about']['type'])) {
+            $item->type = Item::TYPES[$data['about']['type']];
+        }
+
+        $item->store_id = $store->id;
+
+        $categoryId = $item->category_id ?? ($item->type == Item::TYPES[Item::TYPE_PHYSICAL] ? 278 : 286);
+
+        if (isset($data['category_tags']['category']) && $data['category_tags']['category'] != null) {
+            $category = Category::query()->where('uuid', $data['category_tags']['category'])->first();
+
+            if ($category) {
+                $categoryId = $category->id;
+            }
+        }
+
+        if (isset($data['policy'])) {
+            $item->policy_id = $this->attachPolicy($store, $data['policy']);
+        }
+
+        $item->category_id = $categoryId > 0
+            ? $categoryId
+            : ($item->type == Item::TYPES[Item::TYPE_PHYSICAL] ? 278 : 286);
+
+        $itemStatus = isset($data['status'])
+            ? Item::STATUS[$data['status']]
+            : Item::STATUS[Item::STATUS_ACTIVE];
+
+        if ($itemStatus === Item::STATUS[Item::STATUS_ARCHIVED] || $itemStatus === Item::STATUS[Item::STATUS_DRAFT]) {
+            $item->manually_deactivated = true;
+        }
+
+        if ($itemStatus === Item::STATUS[Item::STATUS_ACTIVE]) {
+            $item->manually_deactivated = false;
+        }
+
+        $item->status = $itemStatus;
+        $item->save();
+
+        return $item;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function updateBulkVariants(array $data, Item $item): void
+    {
+        foreach ($data['item_variations']['combination'] as $combination) {
+            $this->updateVariant($combination, $item);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $combination
+     */
+    private function updateVariant(array $combination, Item $item): void
+    {
+        $variant = ItemVariant::query()->where('item_id', $item->id)->where('uuid', $combination['uuid'])->first();
+
+        if (! $variant) {
+            throw new \Exception('Variant not found');
+        }
+
+        if ($item->isShopifyProduct()) {
+            if (isset($combination['weight'])) {
+                $variant->weight = $combination['weight'];
+            }
+            $variant->save();
+
+            return;
+        }
+
+        if (isset($combination['domestic_price'])) {
+            $variant->domestic_price = $combination['domestic_price'] * 100;
+        }
+        if (isset($combination['sku'])) {
+            $variant->sku = $combination['sku'];
+        }
+        if (array_key_exists('gtin', $combination)) {
+            $variant->gtin = $combination['gtin'];
+        }
+        if (isset($combination['stock_quantity'])) {
+            $variant->stock_quantity = $combination['stock_quantity'];
+        }
+        if (isset($combination['is_visible'])) {
+            $variant->is_visible = $combination['is_visible'];
+        }
+        if (isset($combination['weight'])) {
+            $variant->weight = $combination['weight'];
+        }
+        if (isset($combination['allow_overselling'])) {
+            $variant->allow_overselling = $combination['allow_overselling'];
+        }
+        if (isset($combination['image']['uuid'])) {
+            $this->attachVariantImageToProduct([$combination['image']['uuid']], $item, $variant->id);
+        }
+
+        $this->updateLowestPricedCombinationValue($variant->domestic_price);
+        $variant->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function attachBulkCustomization(array $data, Item $item): void
+    {
+        $isEnabled = isset($data['about']['customizations']['enabled']) ? $data['about']['customizations']['enabled'] : false;
+
+        if (! $isEnabled) {
+            Customization::query()->where('item_id', $item->id)->delete();
+
+            return;
+        }
+
+        $customization = $item->customization ?? new Customization;
+        $customization->item_id = $item->id;
+        $customization->description_enabled = $data['about']['customizations']['description_enabled'] ?? 0;
+
+        if (isset($data['about']['customizations']['description'])) {
+            $customization->description = $customization->description_enabled ? $data['about']['customizations']['description'] ?? null : null;
+        }
+        if (isset($data['about']['customizations']['limit'])) {
+            $customization->limit = $customization->description_enabled ? $data['about']['customizations']['limit'] ?? null : null;
+        }
+        if (isset($data['about']['customizations']['attach_file'])) {
+            $customization->attach_file = $data['about']['customizations']['attach_file'] ?? null;
+        }
+
+        $customization->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function attachProductId(array $data, Item $item): void
+    {
+        $csv = new ItemCsv;
+        $csv->product_id = $data['product_id'];
+        $csv->store_id = $item->store_id;
+        $csv->item_id = $item->id;
+        $csv->save();
     }
 }

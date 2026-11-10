@@ -8,4 +8,5 @@ The seller gallery list and the S3 upload URL are in this app. The items below w
 - A missing `data` array on a product upload throws before the `Exception` catch, because `foreach` on null is an `Error`.
 - `count` is required and is not used to decide how many product files are created. The `data` array does that.
 - Gallery `url` prepends `services.marketplace_media` when that value is set and the stored path is not already a full URL. An empty base is left off so the stored path is returned as-is.
-- CSV import and bulk edit are still not in this module.
+- CSV import stores the file on `mps3`, writes `import_products`, and queues validation on `mkt-high`. Processing creates or updates products from rows that already passed validation. A failed cell edit still calls `dd()` in the catch, which stops the request. The completion email uses this app's seller layout and does not convert the store timezone.
+- Bulk list and bulk update edit title, price, variants, tags, sections, images, customization, and discount. Subscribe & Save is not included. A product id from a CSV row is stored on `item_csvs`. Category matching from that id is not run.

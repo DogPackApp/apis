@@ -23,6 +23,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->prefix('api/seller')
                 ->group(base_path('routes/seller/store.php'));
 
+            // Import and bulk are registered before account. PUT /api/seller/{seller:uuid}
+            // would otherwise match PUT /api/seller/bulk.
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/import.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/bulk.php'));
+
             Route::middleware(['api', 'auth:marketplace'])
                 ->prefix('api/seller')
                 ->group(base_path('routes/seller/account.php'));
