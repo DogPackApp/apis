@@ -10,7 +10,10 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "avalara/avataxclient": "^25.3",
+        "barryvdh/laravel-dompdf": "^3.1",
         "darkaonline/l5-swagger": "^11.1",
+        "easypost/easypost-php": "^7.4",
         "elasticsearch/elasticsearch": "9.0",
         "laravel/framework": "^13.8",
         "laravel/passport": "^13.7",
@@ -34,8 +37,7 @@
         "psr-4": {
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/",
-            "EasyPost\\Exception\\Api\\": "app/Support/EasyPost/Exception/Api/"
+            "Database\\Seeders\\": "database/seeders/"
         }
     },
     "autoload-dev": {

@@ -11,9 +11,9 @@ Status values: `Not started` · `Partial` · `Done` · `Out`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 9 | 70 |
+| Done | 10 | 86 |
 | Partial | 1 | — |
-| Not started | 8 | — |
+| Not started | 7 | — |
 | **In scope** | **18** | **141** |
 
 Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backend-api` serves the same seller panel under `/api/marketplace/*`.
@@ -32,7 +32,7 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 8 | Shipping and packaging | 8 | 8 | Done | Rates, packaging, custom methods, address autocomplete and places. Follow-ups are in `docs/shipping-packaging-todo.md`. |
 | 9 | Products | 11 | 11 | Done | Create, list, show, update, archive, bulk move, categories, facets, AI description, category recognition, and CSV export. Follow-ups are in `docs/products-todo.md`. |
 | 10 | Import, bulk edit, and media | 8 | 8 | Done | Gallery list, S3 presigned upload, CSV import, and bulk product list/update. Subscribe & Save is not on the bulk payload. Follow-ups are in `docs/gallery-todo.md`. |
-| 11 | Orders and EasyPost labels | 16 | 0 | Not started | Seller orders, cancel, partial refund, packing slip, timeline and email render (12). EasyPost rates, buy, void, webhook (4) |
+| 11 | Orders and EasyPost labels | 16 | 16 | Done | List, show, cancel, partial refund, manual fulfill, packing slip, weight update, CSV export, timeline, and email render. EasyPost rates, buy, void, and webhook. |
 | 12 | Reviews | 4 | 0 | Not started | Store review list, seller reply, report, report list |
 | 13 | Chat | 7 | 0 | Not started | Thread list, conversation, unread count, report, unblock, initiate message, chat email |
 | 14 | Dashboard and analytics | 5 | 0 | Not started | Purchases, sales, reviews, unfulfilled, total sales |
@@ -48,7 +48,7 @@ These are pieces of `backend-api` that the ported routes still do not have. Copi
 
 | Feature | Where | What's missing |
 |---|---|---|
-| EasyPost SDK | Shipping places, orders | `POST /shipping/address/places` posts the address to the EasyPost HTTP API and stores `easypost_id`. The PHP SDK is not installed. Label rates, buy, void, and the webhook are still in the orders module. |
+| EasyPost | Shipping places and order labels | Address places still posts to the EasyPost HTTP API. Label rates, buy, void, and the webhook use the EasyPost PHP SDK with `MARKETPLACE_EASYPOST_API`. |
 | ConvertTimeZone | Sections, policies, shipping | Responses do not include the converted timestamps from that trait. |
 | `mysql_reader` | Sections, shipping | This app has no reader connection. Those queries use the default database connection. |
 | Product payload | Sections, policies | Seller product list and show include media, variants, tags, sections, policy, customization, discount, and vary-by. Section and policy item lists still use that same resource. |
