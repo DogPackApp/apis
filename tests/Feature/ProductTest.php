@@ -1,6 +1,7 @@
 <?php
 
-use App\Jobs\ExportProductsJob;
+use App\Jobs\Product\ExportProductsJob;
+use App\Mail\Product\ProductsExportEmail;
 use App\Models\Product\Category;
 use App\Models\Product\CategoryFacet;
 use App\Models\Product\ExportProduct;
@@ -8,13 +9,17 @@ use App\Models\Product\FacetValue;
 use App\Models\Product\Gallery;
 use App\Models\Product\Item;
 use App\Models\Product\ItemMedia;
+use App\Models\Product\ItemPrice;
 use App\Models\Seller\OnboardingStatus;
 use App\Models\Seller\Seller;
 use App\Models\Store\Policy;
 use App\Models\Store\Section;
 use App\Models\Store\Store;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Passport\Passport;
 use Tests\Concerns\InteractsWithSellerAuth;
 
@@ -449,6 +454,53 @@ test('csv export queues a batch', function () {
 
     expect(ExportProduct::query()->where('product_uuid', (string) $item->uuid)->exists())->toBeTrue();
     Bus::assertDispatched(ExportProductsJob::class);
+});
+
+test('csv export writes the file and emails the link', function () {
+    [$seller, $store] = actingSeller();
+    $item = Item::factory()->for($store)->create([
+        'title' => 'Chew Toy',
+        'status' => Item::STATUS[Item::STATUS_DRAFT],
+        'origin' => 'US',
+    ]);
+    ItemPrice::query()->create([
+        'item_id' => $item->id,
+        'domestic_price' => 1250,
+        'is_global_pricing' => false,
+        'stock_quantity' => 5,
+        'weight' => 150,
+        'sku' => 'CHEW-1',
+        'allow_overselling' => false,
+    ]);
+    $batchId = (string) str()->uuid();
+    ExportProduct::query()->insert([
+        'batch_id' => $batchId,
+        'product_uuid' => (string) $item->uuid,
+    ]);
+
+    Storage::fake('mps3');
+    Mail::fake();
+    Config::set('services.marketplace_media', 'https://cdn.test/');
+
+    (new ExportProductsJob([
+        'batch_id' => $batchId,
+        'status' => 'DRAFT',
+        'store_id' => $store->id,
+    ]))->handle();
+
+    $path = Storage::disk('mps3')->allFiles()[0];
+    $csv = Storage::disk('mps3')->get($path);
+
+    expect($csv)->toContain('product_title')
+        ->and($csv)->toContain('Chew Toy')
+        ->and($csv)->toContain('12.5')
+        ->and($csv)->toContain('CHEW-1');
+
+    Mail::assertQueued(ProductsExportEmail::class, function (ProductsExportEmail $mail) use ($seller, $store) {
+        return $mail->hasTo($seller->email)
+            && $mail->storeName === $store->name
+            && str_starts_with($mail->url, 'https://cdn.test/exports/csv/');
+    });
 });
 
 test('creating a product stores variants and uses the lowest price', function () {

@@ -23,6 +23,6 @@ The seller product routes are ported from `backend-api`. The items below were no
 - Category lists are cached for 24 hours as Eloquent models.
 - Facet order uses MySQL `FIELD()` only when the driver is MySQL. SQLite tests order by `display_order`. Translations and Google Translate are not ported.
 - Bulk move to active still requires `is_valid = 1`. Shopify products are left in place unless the store has a row in `store_shopify_connections`, and then the request calls the Dragon status API.
-- `POST /product/export-csv` writes `export_products` and queues `ExportProductsJob` on `mkt-medium`. The job does not build the CSV, upload it, or send the backend export email. Variants, tags, and the `mps3` disk are not available here.
+- `POST /product/export-csv` writes `export_products` and queues `ExportProductsJob` on `mkt-medium`. The job writes the CSV to the `mps3` disk and emails the link. The email uses this app's seller layout. `product_id` is the slug of the title. A digital product still exports weight because the type check compares the stored number with the string `DIGITAL`.
 - Category recognition reads `resources/marketplace/*CategoriesPrompt.json`. `backend-api` reads those files from the public storage disk.
 - List and show return media, variants, tags, sections, policy, customization, discount, attributes, and vary-by. They do not return Shopify field-ownership flags, Subscribe & Save, or item facets. Item facets need `item_facet_mappings`, which is not in this app.

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\ExportProductsJob;
+use App\Jobs\Product\ExportProductsJob;
 use App\Models\Product\ExportProduct;
 use App\Models\Product\Item;
 use App\Models\Store\Store;
