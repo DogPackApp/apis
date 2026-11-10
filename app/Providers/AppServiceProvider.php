@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Product\Item;
 use App\Models\Store\Store;
+use App\Observers\Product\ItemObserver;
 use Carbon\Carbon;
+use Elastic\Elasticsearch\Client;
+use Elastic\Elasticsearch\ClientBuilder;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -19,6 +23,20 @@ class AppServiceProvider extends ServiceProvider
     {
         // Same lookup backend-api does for marketplace routes: the authenticated
         // seller's store, resolved when a controller asks for Store.
+        $this->app->singleton(Client::class, function (): Client {
+            $builder = ClientBuilder::create();
+
+            if (config('elasticsearch.cloud_id')) {
+                $builder->setElasticCloudId(config('elasticsearch.cloud_id'));
+            }
+
+            if (config('elasticsearch.api_key')) {
+                $builder->setApiKey(config('elasticsearch.api_key'));
+            }
+
+            return $builder->build();
+        });
+
         $this->app->bind(Store::class, function (): ?Store {
             $seller = auth()->guard('marketplace')->user();
 
@@ -38,6 +56,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Item::observe(ItemObserver::class);
+
         Passport::tokensExpireIn(Carbon::now()->addDays(30));
         Passport::refreshTokensExpireIn(Carbon::now()->addDays(90));
 

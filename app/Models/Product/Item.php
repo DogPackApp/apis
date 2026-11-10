@@ -184,6 +184,17 @@ class Item extends Model
         return $this->hasOne(Customization::class);
     }
 
+    public function unverified(): HasOne
+    {
+        return $this->hasOne(ItemUnverified::class);
+    }
+
+    public function activeFacets(): BelongsToMany
+    {
+        return $this->belongsToMany(FacetValue::class, 'item_facet_mappings', 'item_id', 'facet_value_id')
+            ->where('facet_values.is_active', 1);
+    }
+
     public function isShopifyProduct(): bool
     {
         return $this->source_id !== null;

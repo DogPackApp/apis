@@ -911,3 +911,35 @@ test('product show and list return the saved product details', function () {
         ->assertJsonPath('data.0.medias.0.name', 'Cover')
         ->assertJsonPath('data.0.discount.value', 15);
 });
+
+test('product show and list return active item facets', function () {
+    [, $store] = actingSeller();
+    $item = Item::factory()->for($store)->create();
+    $facet = CategoryFacet::query()->create([
+        'title' => 'Material',
+        'display_order' => 1,
+        'is_active' => true,
+    ]);
+    $active = FacetValue::query()->create([
+        'name' => 'Rubber',
+        'category_facet_id' => $facet->id,
+        'display_order' => 1,
+        'is_active' => true,
+    ]);
+    $inactive = FacetValue::query()->create([
+        'name' => 'Plastic',
+        'category_facet_id' => $facet->id,
+        'display_order' => 2,
+        'is_active' => false,
+    ]);
+    $item->activeFacets()->attach([$active->id, $inactive->id]);
+
+    $this->getJson('/api/seller/product/'.$item->uuid)
+        ->assertOk()
+        ->assertJsonPath('data.facets.0.name', 'Rubber')
+        ->assertJsonCount(1, 'data.facets');
+
+    $this->getJson('/api/seller/product')
+        ->assertOk()
+        ->assertJsonPath('data.0.facets.0.id', $active->id);
+});

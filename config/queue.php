@@ -118,8 +118,10 @@ return [
     */
 
     'low' => env('QUEUE_LOW', 'mkt-low'),
+    'medium' => env('QUEUE_MEDIUM', 'mkt-medium'),
     'high' => env('QUEUE_HIGH', 'mkt-high'),
     'translations' => env('QUEUE_TRANSLATIONS', 'translations'),
+    'elasticsearch' => env('QUEUE_ELASTICSEARCH', 'elasticsearch'),
 
     /*
     |--------------------------------------------------------------------------

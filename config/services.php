@@ -34,6 +34,7 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
         'seller_auth_webhook' => env('SLACK_SELLER_AUTH_WEBHOOK'),
+        'webhook_url' => env('SLACK_ORDER_PLACE_FAILED_WEBHOOK', ''),
     ],
 
     'google' => [
@@ -73,6 +74,7 @@ return [
     'open_ai' => [
         'ai_product_description_key' => env('OPEN_AI_PRODUCT_DESCRIPTION_KEY'),
         'category_key' => env('OPEN_AI_PRODUCT_CATEGORY_KEY'),
+        'facet_classification_key' => env('OPEN_AI_KEY_FACET_CLASSIFICATION'),
     ],
 
 ];

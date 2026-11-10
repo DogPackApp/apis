@@ -4,6 +4,7 @@ namespace App\Models\Product;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FacetValue extends Model
@@ -26,6 +27,11 @@ class FacetValue extends Model
     public function categoryFacet(): BelongsTo
     {
         return $this->belongsTo(CategoryFacet::class);
+    }
+
+    public function items(): BelongsToMany
+    {
+        return $this->belongsToMany(Item::class, 'item_facet_mappings');
     }
 
     public function translations(): HasMany

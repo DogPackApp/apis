@@ -74,6 +74,39 @@ class CategoryService
     }
 
     /**
+     * @return array<int, int>
+     */
+    public function getAllChildIds(int $categoryId, string $language = 'en'): array
+    {
+        return $this->getChildIds($categoryId, $this->getAllCategories($language));
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function getChildIds(int $categoryId, Collection $allCategories): array
+    {
+        $allChildIds = [];
+        $currentLevelIds = [$categoryId];
+
+        while ($currentLevelIds !== []) {
+            $nextLevelIds = $allCategories
+                ->whereIn('parent_id', $currentLevelIds)
+                ->pluck('id')
+                ->all();
+
+            if ($nextLevelIds === []) {
+                break;
+            }
+
+            $allChildIds = array_merge($allChildIds, $nextLevelIds);
+            $currentLevelIds = $nextLevelIds;
+        }
+
+        return $allChildIds;
+    }
+
+    /**
      * @return array<int, string>
      */
     protected function getParentNames(Category $category, Collection $allCategories): array

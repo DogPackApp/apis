@@ -78,6 +78,7 @@ class ProductListController extends Controller
                 'attributes.attributeOptions',
                 'itemVariants.media',
                 'itemVariants.attributesOption.attribute',
+                'activeFacets',
             ])
             ->where('store_id', $store->id)
             ->when($filters['search'] ?? null, function ($query, $search) {

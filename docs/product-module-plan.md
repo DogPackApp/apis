@@ -107,7 +107,7 @@ Category-driven filtering (e.g. a "Material" facet with "Cotton"/"Plastic" value
 
 | API | Used by | Env var (in backend-api) |
 |---|---|---|
-| OpenAI | `POST /product/generate-description`, `POST /product/recognize-category` | `OPEN_AI_PRODUCT_DESCRIPTION_KEY` for descriptions, `OPEN_AI_PRODUCT_CATEGORY_KEY` for category recognition |
+| OpenAI | `POST /product/generate-description`, `POST /product/recognize-category`, facet classification | `OPEN_AI_PRODUCT_DESCRIPTION_KEY` for descriptions, `OPEN_AI_PRODUCT_CATEGORY_KEY` for category recognition, `OPEN_AI_KEY_FACET_CLASSIFICATION` for facet classification |
 | (CSV export) | `POST /product/export-csv` | No external dependency, self-contained |
 
 ---

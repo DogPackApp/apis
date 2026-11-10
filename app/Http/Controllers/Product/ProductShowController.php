@@ -50,6 +50,7 @@ class ProductShowController extends Controller
             'attributes.attributeOptions',
             'itemVariants.media',
             'itemVariants.attributesOption.attribute',
+            'activeFacets',
         ]);
 
         return ProductResource::make($item)

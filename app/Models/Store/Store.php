@@ -45,6 +45,7 @@ class Store extends Model
         'states',
         'timezone',
         'country_id',
+        'is_verified',
         'stripe_account_id',
         'stripe_status',
     ];
@@ -55,6 +56,7 @@ class Store extends Model
             'status' => 'integer',
             'social_links' => 'array',
             'country_id' => 'integer',
+            'is_verified' => 'boolean',
         ];
     }
 

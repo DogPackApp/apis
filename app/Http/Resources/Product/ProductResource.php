@@ -63,6 +63,7 @@ class ProductResource extends JsonResource
             'media' => new ProductMediaResource($this->whenLoaded('media')),
             'discount' => new DiscountResource($this->whenLoaded('discount')),
             'updated_at' => $this->updated_at,
+            'facets' => ProductFacetValueResource::collection($this->whenLoaded('activeFacets')),
             'is_shopify' => $this->isShopifyProduct(),
         ];
     }
