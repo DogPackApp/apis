@@ -19,9 +19,8 @@ The seller product routes are ported from `backend-api`. The items below were no
 
 ## Other gaps
 
-- `GET /product/category` for a non-English `X-localization` joins `categories_translation`. That table is not in this app, so only `en` is safe.
-- Category lists are cached for 24 hours as Eloquent models.
-- Facet order uses MySQL `FIELD()` only when the driver is MySQL. SQLite tests order by `display_order`. Translations and Google Translate are not ported.
+- `GET /product/category` for a non-English `X-localization` joins `categories_translation` and falls back to the English name. Category lists are cached for 24 hours as Eloquent models. The non-English query also reads `categories.tag`.
+- Facet order uses MySQL `FIELD()` only when the driver is MySQL. SQLite tests order by `display_order`. A non-English facet request uses a stored `facet_translations` row, and otherwise calls Google Translate and queues the result. The seller route reads `X-localization`. `backend-api`'s seller route does not, so it stays in English. Translate errors are written to the Laravel log. `backend-api` writes them to marketplace error tables. The key is `GOOGLE_TRANSLATE_API_KEY`.
 - Bulk move to active still requires `is_valid = 1`. Shopify products are left in place unless the store has a row in `store_shopify_connections`, and then the request calls the Dragon status API.
 - `POST /product/export-csv` writes `export_products` and queues `ExportProductsJob` on `mkt-medium`. The job writes the CSV to the `mps3` disk and emails the link. The email uses this app's seller layout. `product_id` is the slug of the title. A digital product still exports weight because the type check compares the stored number with the string `DIGITAL`.
 - Category recognition reads `resources/marketplace/*CategoriesPrompt.json`. `backend-api` reads those files from the public storage disk.

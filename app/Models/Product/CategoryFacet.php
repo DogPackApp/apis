@@ -35,4 +35,10 @@ class CategoryFacet extends Model
             ->orderBy('display_order')
             ->orderBy('id');
     }
+
+    public function translations(): HasMany
+    {
+        return $this->hasMany(FacetTranslation::class, 'entity_id', 'id')
+            ->where('entity_type', FacetTranslation::ENTITY_TYPE_CATEGORY_FACET);
+    }
 }

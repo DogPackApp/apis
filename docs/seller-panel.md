@@ -53,6 +53,7 @@ These are pieces of `backend-api` that the ported routes still do not have. Copi
 | `mysql_reader` | Sections, shipping | This app has no reader connection. Those queries use the default database connection. |
 | Product payload | Sections, policies | Seller product list and show include media, variants, tags, sections, policy, customization, discount, and vary-by. Section and policy item lists still use that same resource. |
 | OpenAI | Product description and category recognition | Both routes call OpenAI with `config('services.open_ai')`. The keys are not set in this app. |
+| Google Translate | Product facets | A non-English facet request calls Google Translate with `GOOGLE_TRANSLATE_API_KEY` when `facet_translations` has no row. Category names for another `X-localization` come from `categories_translation`. |
 | Shopify Dragon | Product bulk move | A store with a Shopify connection asks Dragon for product status before activation. `config/shopify.php` has no URL or token yet. |
 | S3 credentials | Gallery upload | `POST /aws/presigned` calls the `mps3` disk. The S3 package is installed. Set `MP_AWS_KEY`, `MP_AWS_SECRET`, `MP_AWS_REGION`, `MP_AWS_BUCKET`, and `MP_AWS_PATH`. |
 | Redis cache flush | Shipping save | `forgetAllByPattern()` expects Redis. Only that method was ported, and the test cache is the array store. |

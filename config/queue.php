@@ -119,6 +119,7 @@ return [
 
     'low' => env('QUEUE_LOW', 'mkt-low'),
     'high' => env('QUEUE_HIGH', 'mkt-high'),
+    'translations' => env('QUEUE_TRANSLATIONS', 'translations'),
 
     /*
     |--------------------------------------------------------------------------

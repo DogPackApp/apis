@@ -4,7 +4,9 @@ use App\Jobs\Product\ExportProductsJob;
 use App\Mail\Product\ProductsExportEmail;
 use App\Models\Product\Category;
 use App\Models\Product\CategoryFacet;
+use App\Models\Product\CategoryTranslation;
 use App\Models\Product\ExportProduct;
+use App\Models\Product\FacetTranslation;
 use App\Models\Product\FacetValue;
 use App\Models\Product\Gallery;
 use App\Models\Product\Item;
@@ -16,6 +18,7 @@ use App\Models\Store\Policy;
 use App\Models\Store\Section;
 use App\Models\Store\Store;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -397,6 +400,120 @@ test('category facets include the parent facet', function () {
         ->assertOk()
         ->assertJsonPath('data.0.title', 'Material')
         ->assertJsonPath('data.0.values.0.name', 'Rubber');
+});
+
+test('a non english category list uses the translation table', function () {
+    actingSeller();
+    Cache::flush();
+    $parent = Category::query()->create([
+        'name' => 'Dog supplies',
+        'slug' => 'dog-supplies',
+        'is_active' => true,
+    ]);
+    $child = Category::query()->create([
+        'name' => 'Toys',
+        'slug' => 'dog-toys',
+        'parent_id' => $parent->id,
+        'is_active' => true,
+    ]);
+    CategoryTranslation::query()->create([
+        'categories_id' => $parent->id,
+        'lang_type' => 'es',
+        'type' => 'category',
+        'title' => 'Suministros',
+    ]);
+    CategoryTranslation::query()->create([
+        'categories_id' => $child->id,
+        'lang_type' => 'es',
+        'type' => 'category',
+        'title' => 'Juguetes',
+    ]);
+
+    $this->withHeader('X-localization', 'es')
+        ->getJson('/api/seller/product/category')
+        ->assertOk()
+        ->assertJsonFragment(['name' => 'Juguetes', 'full_path' => 'Suministros > Juguetes']);
+});
+
+test('category facets use a stored translation before google', function () {
+    actingSeller();
+    $category = Category::query()->create(['name' => 'Toys', 'slug' => 'dog-toys', 'is_active' => true]);
+    $facet = CategoryFacet::query()->create([
+        'title' => 'Material',
+        'category_id' => $category->id,
+        'display_order' => 1,
+        'is_active' => true,
+    ]);
+    $value = FacetValue::query()->create([
+        'name' => 'Rubber',
+        'category_facet_id' => $facet->id,
+        'display_order' => 1,
+        'is_active' => true,
+    ]);
+    FacetTranslation::query()->create([
+        'entity_id' => $facet->id,
+        'entity_type' => FacetTranslation::ENTITY_TYPE_CATEGORY_FACET,
+        'locale' => 'fr',
+        'text' => 'Matiere',
+    ]);
+    FacetTranslation::query()->create([
+        'entity_id' => $value->id,
+        'entity_type' => FacetTranslation::ENTITY_TYPE_FACET_VALUE,
+        'locale' => 'fr',
+        'text' => 'Caoutchouc',
+    ]);
+    Http::fake();
+
+    $this->withHeader('X-localization', 'fr')
+        ->getJson('/api/seller/product/category/'.$category->uuid.'/facets')
+        ->assertOk()
+        ->assertJsonPath('data.0.title', 'Matiere')
+        ->assertJsonPath('data.0.values.0.name', 'Caoutchouc');
+
+    Http::assertNothingSent();
+});
+
+test('category facets ask google when a translation is missing', function () {
+    actingSeller();
+    $category = Category::query()->create(['name' => 'Toys', 'slug' => 'dog-toys-fr', 'is_active' => true]);
+    $facet = CategoryFacet::query()->create([
+        'title' => 'Material',
+        'category_id' => $category->id,
+        'display_order' => 1,
+        'is_active' => true,
+    ]);
+    $value = FacetValue::query()->create([
+        'name' => 'Rubber',
+        'category_facet_id' => $facet->id,
+        'display_order' => 1,
+        'is_active' => true,
+    ]);
+    Config::set('services.google_translate.api_key', 'test-key');
+    Http::fake([
+        'translation.googleapis.com/*' => Http::response([
+            'data' => [
+                'translations' => [
+                    ['translatedText' => 'Materiau'],
+                    ['translatedText' => 'Caoutchouc'],
+                ],
+            ],
+        ]),
+    ]);
+
+    $this->withHeader('X-localization', 'fr')
+        ->getJson('/api/seller/product/category/'.$category->uuid.'/facets')
+        ->assertOk()
+        ->assertJsonPath('data.0.title', 'Materiau')
+        ->assertJsonPath('data.0.values.0.name', 'Caoutchouc');
+
+    expect(FacetTranslation::query()
+        ->where('entity_id', $facet->id)
+        ->where('entity_type', FacetTranslation::ENTITY_TYPE_CATEGORY_FACET)
+        ->value('text'))->toBe('Materiau')
+        ->and(FacetTranslation::query()
+            ->where('entity_id', $value->id)
+            ->where('entity_type', FacetTranslation::ENTITY_TYPE_FACET_VALUE)
+            ->value('text'))->toBe('Caoutchouc');
 });
 
 test('ai description returns the model text', function () {

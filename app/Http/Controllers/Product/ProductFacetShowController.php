@@ -20,7 +20,8 @@ class ProductFacetShowController extends Controller
 
     public function __invoke(Request $request, Category $category): AnonymousResourceCollection|JsonResponse
     {
-        $categories = $this->categoryFacetService->getCategoryFacetsWithValues($category->id);
+        $language = $request->header('X-localization') ?? 'en';
+        $categories = $this->categoryFacetService->getCategoryFacetsWithValues($category->id, $language);
 
         return ProductFacetShowResource::collection($categories);
     }
