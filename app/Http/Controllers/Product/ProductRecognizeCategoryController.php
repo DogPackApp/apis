@@ -84,7 +84,7 @@ class ProductRecognizeCategoryController extends Controller
             ];
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer '.config('services.open_ai.api_key'),
+                'Authorization' => 'Bearer '.config('services.open_ai.category_key'),
                 'Content-Type' => 'application/json',
             ])->post('https://api.openai.com/v1/responses', [
                 'model' => 'gpt-4o-mini',

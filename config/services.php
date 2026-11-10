@@ -72,7 +72,7 @@ return [
 
     'open_ai' => [
         'ai_product_description_key' => env('OPEN_AI_PRODUCT_DESCRIPTION_KEY'),
-        'api_key' => env('OPEN_AI_API_KEY'),
+        'category_key' => env('OPEN_AI_PRODUCT_CATEGORY_KEY'),
     ],
 
 ];
