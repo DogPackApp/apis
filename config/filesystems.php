@@ -60,6 +60,19 @@ return [
             'report' => false,
         ],
 
+        'mps3' => [
+            'driver' => 's3',
+            'key' => env('MP_AWS_KEY'),
+            'secret' => env('MP_AWS_SECRET'),
+            'region' => env('MP_AWS_REGION'),
+            'bucket' => env('MP_AWS_BUCKET'),
+            'url' => env('MP_AWS_PATH'),
+            'use_path_style_endpoint' => env('MP_AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'path' => env('MP_AWS_PATH', env('MARKETPLACE_CLOUDFRONT_URL', 'https://d2n17nl8nzq4od.cloudfront.net/')),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*
