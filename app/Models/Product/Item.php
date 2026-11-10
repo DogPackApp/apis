@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -146,6 +147,36 @@ class Item extends Model
     public function sections(): BelongsToMany
     {
         return $this->belongsToMany(Section::class);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'item_tags', 'item_id', 'tags_id');
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ItemVariant::class);
+    }
+
+    public function attributes(): HasMany
+    {
+        return $this->hasMany(Attribute::class);
+    }
+
+    public function varyBy(): HasOne
+    {
+        return $this->hasOne(VaryBy::class);
+    }
+
+    public function discount(): HasOne
+    {
+        return $this->hasOne(Discount::class);
+    }
+
+    public function customization(): HasOne
+    {
+        return $this->hasOne(Customization::class);
     }
 
     public function isShopifyProduct(): bool

@@ -11,8 +11,8 @@ Status values: `Not started` · `Partial` · `Done` · `Out`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 7 | 56 |
-| Partial | 2 | — |
+| Done | 8 | 62 |
+| Partial | 1 | — |
 | Not started | 9 | — |
 | **In scope** | **18** | **141** |
 
@@ -30,7 +30,7 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 6 | Catalog sections | 10 | 10 | Done | Create, list, update, delete, move, reorder, section items. Follow-ups are in `docs/catalog-sections-todo.md`. |
 | 7 | Policies | 8 | 8 | Done | Create, list, show, update, delete, default flag, and policy items. Follow-ups are in `docs/policies-todo.md`. |
 | 8 | Shipping and packaging | 8 | 8 | Done | Rates, packaging, custom methods, address autocomplete and places. Follow-ups are in `docs/shipping-packaging-todo.md`. |
-| 9 | Products | 11 | 5 | Partial | Create, list, show, update, and archive are in. Bulk move, categories, facets, AI description, category recognition, and CSV export are not. |
+| 9 | Products | 11 | 11 | Done | Create, list, show, update, archive, bulk move, categories, facets, AI description, category recognition, and CSV export. Follow-ups are in `docs/products-todo.md`. |
 | 10 | Import, bulk edit, and media | 8 | 0 | Not started | CSV import (4), bulk list/update (2), store gallery (1), S3 presigned upload (1) |
 | 11 | Orders and EasyPost labels | 16 | 0 | Not started | Seller orders, cancel, partial refund, packing slip, timeline and email render (12). EasyPost rates, buy, void, webhook (4) |
 | 12 | Reviews | 4 | 0 | Not started | Store review list, seller reply, report, report list |
@@ -51,7 +51,9 @@ These are pieces of `backend-api` that the ported routes still do not have. Copi
 | EasyPost SDK | Shipping places, orders | `POST /shipping/address/places` posts the address to the EasyPost HTTP API and stores `easypost_id`. The PHP SDK is not installed. Label rates, buy, void, and the webhook are still in the orders module. |
 | ConvertTimeZone | Sections, policies, shipping | Responses do not include the converted timestamps from that trait. |
 | `mysql_reader` | Sections, shipping | This app has no reader connection. Those queries use the default database connection. |
-| Product payload | Sections, policies | Item lists use this app's `ProductResource`. Media, variants, tags, sections, and policy are not in that JSON. |
+| Product payload | Sections, policies, product export | Item lists use this app's `ProductResource`. Media, variants, tags, sections, and policy are not in that JSON. The CSV export job does not write the variant columns or upload to S3. |
+| OpenAI | Product description and category recognition | Both routes call OpenAI with `config('services.open_ai')`. The keys are not set in this app. |
+| Shopify Dragon | Product bulk move | A store with a Shopify connection asks Dragon for product status before activation. `config/shopify.php` has no URL or token yet. |
 | Gallery and CloudFront | Sections | `galleries` and `item_medias` exist so the eager load can run. The gallery API and the CloudFront `url` accessor are not ported. |
 | Redis cache flush | Shipping save | `forgetAllByPattern()` expects Redis. Only that method was ported, and the test cache is the array store. |
 | Support-phone email partial | Shipping places | The invalid-address email does not include `marketplace.emails.partials.support-phone`. |

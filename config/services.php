@@ -66,4 +66,9 @@ return [
     'marketplace_google_api' => env('MARKETPLACE_GOOGLE_API'),
     'marketplace_easypost_api' => env('MARKETPLACE_EASYPOST_API'),
 
+    'open_ai' => [
+        'ai_product_description_key' => env('OPEN_AI_PRODUCT_DESCRIPTION_KEY'),
+        'api_key' => env('OPEN_AI_API_KEY'),
+    ],
+
 ];

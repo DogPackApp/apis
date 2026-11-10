@@ -1,10 +1,18 @@
 <?php
 
+use App\Jobs\ExportProductsJob;
 use App\Models\Product\Category;
+use App\Models\Product\CategoryFacet;
+use App\Models\Product\ExportProduct;
+use App\Models\Product\FacetValue;
 use App\Models\Product\Item;
 use App\Models\Seller\OnboardingStatus;
 use App\Models\Seller\Seller;
+use App\Models\Store\Policy;
+use App\Models\Store\Section;
 use App\Models\Store\Store;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Http;
 use Laravel\Passport\Passport;
 use Tests\Concerns\InteractsWithSellerAuth;
 
@@ -259,4 +267,316 @@ test('archive toggle returns 404 for another store product', function () {
     $item = Item::factory()->for($otherStore)->create();
 
     $this->putJson("/api/seller/product/{$item->uuid}/archive")->assertNotFound();
+});
+
+test('creating a product stores the selected policy', function () {
+    [, $store] = actingSeller();
+    $category = makeCategory();
+    $policy = new Policy;
+    $policy->store_id = $store->id;
+    $policy->name = 'Standard';
+    $policy->save();
+
+    $this->postJson('/api/seller/product', activeProductPayload($category, [
+        'policy' => (string) $policy->uuid,
+    ]))->assertCreated();
+
+    expect(Item::query()->where('store_id', $store->id)->first()->policy_id)->toBe($policy->id);
+});
+
+test('creating a product attaches tags and sections', function () {
+    [, $store] = actingSeller();
+    $category = makeCategory();
+    $section = new Section;
+    $section->store_id = $store->id;
+    $section->name = 'Toys';
+    $section->slug = 'toys';
+    $section->is_visible = 1;
+    $section->order = 1;
+    $section->save();
+
+    $this->postJson('/api/seller/product', activeProductPayload($category, [
+        'category_tags' => [
+            'category' => $category->uuid,
+            'tags' => ['Chew', 'Outdoor'],
+        ],
+        'section' => [(string) $section->uuid],
+    ]))->assertCreated();
+
+    $item = Item::query()->where('store_id', $store->id)->first();
+
+    expect($item->tags()->pluck('name')->sort()->values()->all())->toBe(['Chew', 'Outdoor'])
+        ->and($item->sections()->pluck('slug')->sort()->values()->all())->toBe(['all', 'toys']);
+
+    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+        'about' => ['is_description_edited' => false],
+        'category_tags' => [
+            'category' => $category->uuid,
+            'tags' => ['Chew'],
+        ],
+        'section' => [],
+    ]))->assertOk();
+
+    expect($item->tags()->pluck('name')->all())->toBe(['Chew'])
+        ->and($item->sections()->pluck('slug')->all())->toBe(['all']);
+});
+
+test('bulk move sends invalid products back and drafts the rest', function () {
+    [, $store] = actingSeller();
+    $invalid = Item::factory()->for($store)->create(['status' => Item::STATUS[Item::STATUS_DRAFT]]);
+    $valid = Item::factory()->for($store)->create(['status' => Item::STATUS[Item::STATUS_DRAFT]]);
+    $valid->is_valid = 1;
+    $valid->save();
+
+    $this->putJson('/api/seller/product/bulk/move', [
+        'products' => [(string) $invalid->uuid, (string) $valid->uuid],
+        'status' => 'ACTIVE',
+    ])->assertUnprocessable()
+        ->assertJsonPath('products.0.uuid', (string) $invalid->uuid);
+
+    expect($valid->refresh()->status)->toBe(Item::STATUS[Item::STATUS_ACTIVE]);
+
+    $this->putJson('/api/seller/product/bulk/move', [
+        'products' => [(string) $valid->uuid],
+        'status' => 'DRAFT',
+    ])->assertNoContent();
+
+    expect($valid->refresh()->status)->toBe(Item::STATUS[Item::STATUS_DRAFT])
+        ->and($valid->manually_deactivated)->toBeTrue();
+});
+
+test('seller category list includes the full path', function () {
+    actingSeller();
+    $parent = Category::query()->create([
+        'name' => 'Dog supplies',
+        'slug' => 'dog-supplies',
+        'is_active' => true,
+    ]);
+    Category::query()->create([
+        'name' => 'Toys',
+        'slug' => 'dog-toys',
+        'parent_id' => $parent->id,
+        'is_active' => true,
+    ]);
+
+    $this->getJson('/api/seller/product/category')
+        ->assertOk()
+        ->assertJsonFragment(['full_path' => 'Dog supplies > Toys']);
+});
+
+test('category facets include the parent facet', function () {
+    actingSeller();
+    $parent = Category::query()->create(['name' => 'Dog supplies', 'slug' => 'dog-supplies', 'is_active' => true]);
+    $child = Category::query()->create([
+        'name' => 'Toys',
+        'slug' => 'dog-toys',
+        'parent_id' => $parent->id,
+        'is_active' => true,
+    ]);
+    $facet = CategoryFacet::query()->create([
+        'title' => 'Material',
+        'category_id' => $parent->id,
+        'display_order' => 1,
+        'is_active' => true,
+    ]);
+    FacetValue::query()->create([
+        'name' => 'Rubber',
+        'category_facet_id' => $facet->id,
+        'display_order' => 1,
+        'is_active' => true,
+    ]);
+
+    $this->getJson('/api/seller/product/category/'.$child->uuid.'/facets')
+        ->assertOk()
+        ->assertJsonPath('data.0.title', 'Material')
+        ->assertJsonPath('data.0.values.0.name', 'Rubber');
+});
+
+test('ai description returns the model text', function () {
+    actingSeller();
+
+    Http::fake([
+        'api.openai.com/*' => Http::response([
+            'choices' => [
+                ['message' => ['content' => 'A sturdy chew toy.']],
+            ],
+        ]),
+    ]);
+
+    $this->postJson('/api/seller/product/generate-description', [
+        'description' => 'Rubber toy',
+        'product_name' => 'Chew Toy',
+    ])->assertOk()
+        ->assertJsonPath('description', 'A sturdy chew toy.');
+});
+
+test('category recognition returns the matched category uuid', function () {
+    actingSeller();
+    $category = makeCategory();
+
+    Http::fake([
+        'api.openai.com/*' => Http::response([
+            'output' => [[
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => json_encode(['id' => $category->id, 'full_path' => 'Toys']),
+                ]],
+            ]],
+        ]),
+    ]);
+
+    $this->postJson('/api/seller/product/recognize-category', [
+        'product_name' => 'Chew Toy',
+        'description' => 'A rubber toy',
+        'product_type' => 'PHYSICAL',
+    ])->assertOk()
+        ->assertJsonPath('data.uuid', (string) $category->uuid)
+        ->assertJsonPath('message', 'Category recognized successfully');
+});
+
+test('csv export queues a batch', function () {
+    [, $store] = actingSeller();
+    $item = Item::factory()->for($store)->create();
+    Bus::fake();
+
+    $this->postJson('/api/seller/product/export-csv', [
+        'products' => [(string) $item->uuid],
+        'status' => 'DRAFT',
+    ])->assertOk()
+        ->assertJsonPath('message', 'Product export CSV file is being prepared. You will receive an email when it is ready.');
+
+    expect(ExportProduct::query()->where('product_uuid', (string) $item->uuid)->exists())->toBeTrue();
+    Bus::assertDispatched(ExportProductsJob::class);
+});
+
+test('creating a product stores variants and uses the lowest price', function () {
+    [, $store] = actingSeller();
+    $category = makeCategory();
+
+    $this->postJson('/api/seller/product', activeProductPayload($category, [
+        'item_variations' => [
+            'variants' => [
+                ['name' => 'Size', 'options' => ['Small', 'Medium']],
+            ],
+            'combination' => [
+                [
+                    'variants' => [['type' => 'Size', 'value' => 'Small']],
+                    'domestic_price' => 8,
+                    'quantity' => 3,
+                    'sku' => 'CHEW-S',
+                    'is_visible' => true,
+                ],
+                [
+                    'variants' => [['type' => 'Size', 'value' => 'Medium']],
+                    'domestic_price' => 10,
+                    'quantity' => 1,
+                    'sku' => 'CHEW-M',
+                    'is_visible' => true,
+                ],
+            ],
+            'vary_by' => [
+                'sku' => true,
+                'quantity' => true,
+                'price' => true,
+                'weight' => false,
+            ],
+        ],
+    ]))->assertCreated();
+
+    $item = Item::query()->where('store_id', $store->id)->first();
+    $small = $item->variants()->where('sku', 'CHEW-S')->first();
+
+    expect($item->price->domestic_price)->toEqual(800)
+        ->and($item->variants()->count())->toBe(2)
+        ->and($small->stock_quantity)->toBe(3)
+        ->and($small->attributeOptions()->pluck('attribute_value')->all())->toBe(['Small'])
+        ->and($item->varyBy->price)->toBe(1);
+
+    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+        'about' => ['is_description_edited' => false],
+        'item_variations' => [
+            'variants' => [
+                ['name' => 'Size', 'options' => ['Small']],
+            ],
+            'combination' => [
+                [
+                    'uuid' => (string) $small->uuid,
+                    'variants' => [['type' => 'Size', 'value' => 'Small']],
+                    'domestic_price' => 9,
+                    'quantity' => 4,
+                    'sku' => 'CHEW-S',
+                    'is_visible' => true,
+                ],
+            ],
+            'vary_by' => [
+                'sku' => true,
+                'quantity' => false,
+                'price' => true,
+                'weight' => false,
+            ],
+        ],
+    ]))->assertOk();
+
+    $item->refresh();
+
+    expect($item->variants()->pluck('sku')->all())->toBe(['CHEW-S'])
+        ->and($item->variants()->first()->domestic_price)->toEqual(900)
+        ->and($item->price->domestic_price)->toEqual(900)
+        ->and($item->attributes()->first()->attributeOptions()->pluck('attribute_value')->all())->toBe(['Small']);
+});
+
+test('updating a product stores a discount and customization', function () {
+    [, $store] = actingSeller();
+    $category = makeCategory();
+
+    $this->postJson('/api/seller/product', activeProductPayload($category, [
+        'about' => [
+            'customizations' => [
+                'enabled' => true,
+                'description' => 'Engrave a name',
+                'description_enabled' => true,
+                'limit' => 20,
+                'attach_file' => true,
+            ],
+        ],
+    ]))->assertCreated();
+
+    $item = Item::query()->where('store_id', $store->id)->first();
+
+    expect($item->customization->attach_file)->toBe(1)
+        ->and($item->customization->description)->toBe('Engrave a name')
+        ->and($item->customization->limit)->toBe(20)
+        ->and($item->discount)->toBeNull();
+
+    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+        'about' => [
+            'is_description_edited' => false,
+            'customizations' => [
+                'enabled' => true,
+                'description_enabled' => true,
+                'description' => 'Engrave a name',
+                'attach_file' => false,
+            ],
+        ],
+        'discount' => [
+            'value' => 15,
+            'is_limited' => true,
+        ],
+    ]))->assertOk();
+
+    $item->refresh();
+
+    expect($item->customization->description)->toBe('Engrave a name')
+        ->and($item->customization->limit)->toBeNull()
+        ->and($item->discount->value)->toBe(1500)
+        ->and($item->discount->start_date)->toBeNull();
+
+    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+        'about' => ['is_description_edited' => false],
+    ]))->assertOk();
+
+    $item->unsetRelation('customization')->unsetRelation('discount');
+
+    expect($item->customization)->toBeNull()
+        ->and($item->discount)->toBeNull();
 });
