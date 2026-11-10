@@ -64,7 +64,21 @@ class ProductListController extends Controller
         $filters = $validator->validated();
 
         $items = Item::query()
-            ->with(['category', 'price'])
+            ->with([
+                'category',
+                'policy',
+                'tags',
+                'discount',
+                'customization',
+                'price',
+                'medias',
+                'media',
+                'varyBy',
+                'sections',
+                'attributes.attributeOptions',
+                'itemVariants.media',
+                'itemVariants.attributesOption.attribute',
+            ])
             ->where('store_id', $store->id)
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where('title', 'like', '%'.$search.'%');

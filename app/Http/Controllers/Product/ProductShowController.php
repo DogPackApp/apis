@@ -36,7 +36,21 @@ class ProductShowController extends Controller
             abort(Response::HTTP_NOT_FOUND);
         }
 
-        $item->load('category', 'price');
+        $item->load([
+            'category',
+            'policy',
+            'tags',
+            'discount',
+            'customization',
+            'price',
+            'medias',
+            'media',
+            'varyBy',
+            'sections',
+            'attributes.attributeOptions',
+            'itemVariants.media',
+            'itemVariants.attributesOption.attribute',
+        ]);
 
         return ProductResource::make($item)
             ->response()

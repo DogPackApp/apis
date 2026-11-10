@@ -663,3 +663,82 @@ test('creating a product attaches gallery images in order', function () {
         ->and(ItemMedia::query()->where('item_id', $item->id)->pluck('gallery_id')->all())
         ->toBe([$extra->id]);
 });
+
+test('product show and list return the saved product details', function () {
+    [, $store] = actingSeller();
+    $category = makeCategory();
+    $section = new Section;
+    $section->store_id = $store->id;
+    $section->name = 'Toys';
+    $section->slug = 'toys';
+    $section->is_visible = 1;
+    $section->order = 1;
+    $section->save();
+    $image = new Gallery;
+    $image->store_id = $store->id;
+    $image->url = 'uploads/products/cover.webp';
+    $image->name = 'Cover';
+    $image->type = Gallery::TYPE_IMAGE;
+    $image->save();
+
+    $this->postJson('/api/seller/product', activeProductPayload($category, [
+        'about' => ['images' => [(string) $image->uuid]],
+        'category_tags' => [
+            'category' => $category->uuid,
+            'tags' => ['Chew'],
+        ],
+        'section' => [(string) $section->uuid],
+        'item_variations' => [
+            'variants' => [
+                ['name' => 'Size', 'options' => ['Small']],
+            ],
+            'combination' => [
+                [
+                    'variants' => [['type' => 'Size', 'value' => 'Small']],
+                    'domestic_price' => 8,
+                    'sku' => 'CHEW-S',
+                    'gtin' => '012345678912',
+                    'is_visible' => true,
+                ],
+            ],
+            'vary_by' => [
+                'sku' => true,
+                'quantity' => false,
+                'price' => true,
+                'weight' => false,
+            ],
+        ],
+    ]))->assertCreated();
+
+    $item = Item::query()->where('store_id', $store->id)->first();
+
+    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+        'about' => ['is_description_edited' => false],
+        'category_tags' => [
+            'category' => $category->uuid,
+            'tags' => ['Chew'],
+        ],
+        'section' => [(string) $section->uuid],
+        'price_inventory' => ['gtin' => '012345678905'],
+        'discount' => ['value' => 15, 'is_limited' => true],
+    ]))->assertOk();
+
+    $show = $this->getJson('/api/seller/product/'.$item->uuid)->assertOk();
+
+    $show->assertJsonPath('data.prices.gtin', '012345678905')
+        ->assertJsonPath('data.tags.0.name', 'Chew')
+        ->assertJsonPath('data.sections.1.slug', 'toys')
+        ->assertJsonPath('data.medias.0.url', 'uploads/products/cover.webp')
+        ->assertJsonPath('data.attributes.0.name', 'Size')
+        ->assertJsonPath('data.itemVariants.0.sku', 'CHEW-S')
+        ->assertJsonPath('data.itemVariants.0.f_id', 'Small')
+        ->assertJsonPath('data.itemVariants.0.domestic_price', 8)
+        ->assertJsonPath('data.vary_by.price', 1)
+        ->assertJsonPath('data.discount.value', 15);
+
+    $this->getJson('/api/seller/product')
+        ->assertOk()
+        ->assertJsonPath('data.0.uuid', (string) $item->uuid)
+        ->assertJsonPath('data.0.medias.0.name', 'Cover')
+        ->assertJsonPath('data.0.discount.value', 15);
+});

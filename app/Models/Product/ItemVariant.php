@@ -5,6 +5,7 @@ namespace App\Models\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Str;
 
 class ItemVariant extends Model
@@ -46,5 +47,15 @@ class ItemVariant extends Model
             'item_variant_id',
             'attribute_option_id',
         );
+    }
+
+    public function attributesOption(): BelongsToMany
+    {
+        return $this->attributeOptions();
+    }
+
+    public function media(): HasOneThrough
+    {
+        return $this->hasOneThrough(Gallery::class, ItemMedia::class, 'item_variant_id', 'id', 'id', 'gallery_id')->oldest();
     }
 }

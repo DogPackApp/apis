@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Product;
 
+use App\Http\Resources\Store\PolicyResource;
+use App\Http\Resources\Store\SectionResource;
 use App\Models\Product\Item;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -38,8 +40,28 @@ class ProductResource extends JsonResource
             'origin' => $this->origin ?? 'US',
             'inventory' => $this->stock(),
             'status' => array_search($this->status, Item::STATUS),
+            'customization' => new ProductCustomizationResource($this->whenLoaded('customization')),
             'prices' => new ProductPriceResource($this->whenLoaded('price')),
             'category' => new ProductCategoryResource($this->whenLoaded('category')),
+            'policy' => new PolicyResource($this->whenLoaded('policy')),
+            'sections' => SectionResource::collection($this->whenLoaded('sections')),
+            'attributes' => AttributesResource::collection($this->whenLoaded('attributes')),
+            'vary_by' => new VaryByResource($this->whenLoaded('varyBy')),
+            'itemVariants' => VariantsResource::collection(
+                $this->whenLoaded('itemVariants', function ($collection) {
+                    return $collection->filter(function ($variant) {
+                        $attributesOption = $variant->relationLoaded('attributesOption')
+                            ? $variant->attributesOption
+                            : collect();
+
+                        return $attributesOption->count() > 0;
+                    })->values();
+                })
+            ),
+            'tags' => ProductTagResource::collection($this->whenLoaded('tags')),
+            'medias' => ProductMediaResource::collection($this->whenLoaded('medias')),
+            'media' => new ProductMediaResource($this->whenLoaded('media')),
+            'discount' => new DiscountResource($this->whenLoaded('discount')),
             'updated_at' => $this->updated_at,
             'is_shopify' => $this->isShopifyProduct(),
         ];

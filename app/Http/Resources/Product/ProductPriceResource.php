@@ -12,6 +12,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'uuid', type: 'string', format: 'uuid'),
         new OA\Property(property: 'sku', type: 'string', nullable: true),
+        new OA\Property(property: 'gtin', type: 'string', nullable: true),
         new OA\Property(property: 'is_global_pricing', type: 'boolean'),
         new OA\Property(property: 'domestic_price', type: 'number', format: 'float', example: 12.5),
         new OA\Property(property: 'global_price', type: 'number', format: 'float', example: 15),
@@ -31,6 +32,7 @@ class ProductPriceResource extends JsonResource
         return [
             'uuid' => $this->uuid,
             'sku' => $this->sku,
+            'gtin' => $this->gtin,
             'is_global_pricing' => $this->is_global_pricing,
             'domestic_price' => $this->domestic_price / 100,
             'global_price' => $this->global_price / 100,

@@ -159,6 +159,11 @@ class Item extends Model
         return $this->hasMany(ItemVariant::class);
     }
 
+    public function itemVariants(): HasMany
+    {
+        return $this->hasMany(ItemVariant::class);
+    }
+
     public function attributes(): HasMany
     {
         return $this->hasMany(Attribute::class);

@@ -51,7 +51,7 @@ These are pieces of `backend-api` that the ported routes still do not have. Copi
 | EasyPost SDK | Shipping places, orders | `POST /shipping/address/places` posts the address to the EasyPost HTTP API and stores `easypost_id`. The PHP SDK is not installed. Label rates, buy, void, and the webhook are still in the orders module. |
 | ConvertTimeZone | Sections, policies, shipping | Responses do not include the converted timestamps from that trait. |
 | `mysql_reader` | Sections, shipping | This app has no reader connection. Those queries use the default database connection. |
-| Product payload | Sections, policies, product export | Item lists use this app's `ProductResource`. Media, variants, tags, sections, and policy are not in that JSON. The CSV export job does not write the variant columns or upload to S3. |
+| Product payload | Sections, policies, product export | Seller product list and show include media, variants, tags, sections, policy, customization, discount, and vary-by. Section and policy item lists still use that same resource. The CSV export job does not write the file or upload it to S3. |
 | OpenAI | Product description and category recognition | Both routes call OpenAI with `config('services.open_ai')`. The keys are not set in this app. |
 | Shopify Dragon | Product bulk move | A store with a Shopify connection asks Dragon for product status before activation. `config/shopify.php` has no URL or token yet. |
 | S3 credentials | Gallery upload | `POST /aws/presigned` calls the `mps3` disk. The S3 package is installed. Set `MP_AWS_KEY`, `MP_AWS_SECRET`, `MP_AWS_REGION`, `MP_AWS_BUCKET`, and `MP_AWS_PATH`. |

@@ -25,4 +25,4 @@ The seller product routes are ported from `backend-api`. The items below were no
 - Bulk move to active still requires `is_valid = 1`. Shopify products are left in place unless the store has a row in `store_shopify_connections`, and then the request calls the Dragon status API.
 - `POST /product/export-csv` writes `export_products` and queues `ExportProductsJob` on `mkt-medium`. The job does not build the CSV, upload it, or send the backend export email. Variants, tags, and the `mps3` disk are not available here.
 - Category recognition reads `resources/marketplace/*CategoriesPrompt.json`. `backend-api` reads those files from the public storage disk.
-- The product JSON on list and show is still this app's `ProductResource`.
+- List and show return media, variants, tags, sections, policy, customization, discount, attributes, and vary-by. They do not return Shopify field-ownership flags, Subscribe & Save, or item facets. Item facets need `item_facet_mappings`, which is not in this app.
