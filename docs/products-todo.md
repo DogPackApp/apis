@@ -4,7 +4,8 @@ The seller product routes are ported from `backend-api`. The items below were no
 
 ## Repository
 
-- `ProductRepository::create()` and `update()` save the item, price, GTIN, policy, tags, catalog sections, variants, vary-by, customization, and discount. They do not sync product images, bundles, or sizing charts. `backend-api`'s repository does.
+- `ProductRepository::create()` and `update()` save the item, price, GTIN, policy, tags, catalog sections, variants, vary-by, customization, discount, and product images. They do not sync bundles or sizing charts. `backend-api`'s repository does.
+- Product images in `about.images` replace the non-variant `item_medias` rows and set `items.media_url` to the first gallery whose type starts with `image`. With no image, the cover becomes `uploads/default-images/empty_product.webp`. Gallery lookup uses the default connection. `backend-api` reads it from `mysql_reader`. Shopify still does not upload images into the gallery.
 - Customization is saved when `about.customizations.enabled` is present. The check uses `isset`, so a present `enabled: false` still saves a row. Description and limit are stored only when `description_enabled` is true. The update rule rejects `limit` when it is greater than 0 and the description is enabled. A missing customization key deletes the row.
 - Discount is `discount.value` times 100. A limited discount clears its dates. A missing `discount` key deletes the row. Create validation does not include `discount`, so an ACTIVE create cannot store one.
 - Variants come from `item_variations`. Create writes attributes, options, combinations, and `vary_by`. Update replaces missing attribute names and options, then matches combinations by uuid. The item's domestic price becomes the lowest variant price when variants are sent.

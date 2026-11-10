@@ -38,6 +38,7 @@ class ProductRepository
         $this->lowestVariantPrice = null;
 
         $item = $this->createOrUpdateItem($store, $data);
+        $this->attachImagesToProduct($data, $item);
         $this->createVariants($data, $item);
         $this->createVaryBy($data, $item);
         $this->attachPrice($data, $item);
@@ -55,6 +56,7 @@ class ProductRepository
         $this->lowestVariantPrice = null;
 
         $item = $this->createOrUpdateItem($store, $data, $item);
+        $this->attachImagesToProduct($data, $item);
         $this->syncVariants($data, $item);
         $this->createVaryBy($data, $item, update: true);
         $this->attachPrice($data, $item, update: true);
@@ -607,6 +609,68 @@ class ProductRepository
 
         if ($this->lowestVariantPrice === null || $price < $this->lowestVariantPrice) {
             $this->lowestVariantPrice = $price;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function attachImagesToProduct(array $data, Item $item): void
+    {
+        if (isset($data['about']['images'])) {
+            $this->attachImageToProduct($data['about']['images'], $item);
+        }
+    }
+
+    /**
+     * @param  array<int, string>  $images
+     */
+    private function attachImageToProduct(array $images, Item $item): void
+    {
+        $gallery = Gallery::query()
+            ->select('id', 'uuid', 'type', 'url')
+            ->where('store_id', $item->store_id)
+            ->whereIn('uuid', $images)
+            ->get()
+            ->keyBy('uuid')
+            ->toArray();
+
+        ItemMedia::query()
+            ->whereNull('item_variant_id')
+            ->where('item_id', $item->id)
+            ->delete();
+
+        $itemMedias = [];
+        $attachedCoverImageToProduct = false;
+
+        foreach ($images as $index => $uuid) {
+            if (! isset($gallery[$uuid])) {
+                continue;
+            }
+
+            $itemMedias[] = [
+                'uuid' => (string) Str::uuid(),
+                'item_id' => $item->id,
+                'gallery_id' => $gallery[$uuid]['id'],
+                'order' => $index,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            if (! $attachedCoverImageToProduct && str_starts_with($gallery[$uuid]['type'], 'image')) {
+                $attachedCoverImageToProduct = true;
+                $item->media_url = $gallery[$uuid]['url'];
+                $item->save();
+            }
+        }
+
+        if (! $attachedCoverImageToProduct) {
+            $item->media_url = 'uploads/default-images/empty_product.webp';
+            $item->save();
+        }
+
+        if ($itemMedias !== []) {
+            ItemMedia::query()->insert($itemMedias);
         }
     }
 

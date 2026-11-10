@@ -5,7 +5,9 @@ use App\Models\Product\Category;
 use App\Models\Product\CategoryFacet;
 use App\Models\Product\ExportProduct;
 use App\Models\Product\FacetValue;
+use App\Models\Product\Gallery;
 use App\Models\Product\Item;
+use App\Models\Product\ItemMedia;
 use App\Models\Seller\OnboardingStatus;
 use App\Models\Seller\Seller;
 use App\Models\Store\Policy;
@@ -620,4 +622,44 @@ test('creating a product stores the price and variant gtin', function () {
     ]))->assertOk();
 
     expect($item->price()->first()->gtin)->toBe('099999999999');
+});
+
+test('creating a product attaches gallery images in order', function () {
+    [, $store] = actingSeller();
+    $category = makeCategory();
+    $cover = new Gallery;
+    $cover->store_id = $store->id;
+    $cover->url = 'uploads/products/cover.webp';
+    $cover->type = Gallery::TYPE_IMAGE;
+    $cover->save();
+    $extra = new Gallery;
+    $extra->store_id = $store->id;
+    $extra->url = 'uploads/products/side.webp';
+    $extra->type = Gallery::TYPE_IMAGE;
+    $extra->save();
+
+    $this->postJson('/api/seller/product', activeProductPayload($category, [
+        'about' => [
+            'images' => [(string) $cover->uuid, (string) $extra->uuid],
+        ],
+    ]))->assertCreated();
+
+    $item = Item::query()->where('store_id', $store->id)->first();
+
+    expect($item->media_url)->toBe('uploads/products/cover.webp')
+        ->and(ItemMedia::query()->where('item_id', $item->id)->orderBy('order')->pluck('gallery_id')->all())
+        ->toBe([$cover->id, $extra->id]);
+
+    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+        'about' => [
+            'is_description_edited' => false,
+            'images' => [(string) $extra->uuid],
+        ],
+    ]))->assertOk();
+
+    $item->refresh();
+
+    expect($item->media_url)->toBe('uploads/products/side.webp')
+        ->and(ItemMedia::query()->where('item_id', $item->id)->pluck('gallery_id')->all())
+        ->toBe([$extra->id]);
 });
