@@ -33,4 +33,23 @@ class Gallery extends Model
     {
         return $this->belongsTo(Store::class);
     }
+
+    public function getUrlAttribute(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+
+        $base = config('services.marketplace_media');
+
+        if ($base === null || $base === '') {
+            return $value;
+        }
+
+        return $base.$value;
+    }
 }

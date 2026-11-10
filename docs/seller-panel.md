@@ -11,9 +11,9 @@ Status values: `Not started` · `Partial` · `Done` · `Out`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 8 | 62 |
-| Partial | 1 | — |
-| Not started | 9 | — |
+| Done | 8 | 64 |
+| Partial | 2 | — |
+| Not started | 8 | — |
 | **In scope** | **18** | **141** |
 
 Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backend-api` serves the same seller panel under `/api/marketplace/*`.
@@ -31,7 +31,7 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 7 | Policies | 8 | 8 | Done | Create, list, show, update, delete, default flag, and policy items. Follow-ups are in `docs/policies-todo.md`. |
 | 8 | Shipping and packaging | 8 | 8 | Done | Rates, packaging, custom methods, address autocomplete and places. Follow-ups are in `docs/shipping-packaging-todo.md`. |
 | 9 | Products | 11 | 11 | Done | Create, list, show, update, archive, bulk move, categories, facets, AI description, category recognition, and CSV export. Follow-ups are in `docs/products-todo.md`. |
-| 10 | Import, bulk edit, and media | 8 | 0 | Not started | CSV import (4), bulk list/update (2), store gallery (1), S3 presigned upload (1) |
+| 10 | Import, bulk edit, and media | 8 | 2 | Partial | Gallery list and S3 presigned upload are in. CSV import (4) and bulk list/update (2) are not. Follow-ups are in `docs/gallery-todo.md`. |
 | 11 | Orders and EasyPost labels | 16 | 0 | Not started | Seller orders, cancel, partial refund, packing slip, timeline and email render (12). EasyPost rates, buy, void, webhook (4) |
 | 12 | Reviews | 4 | 0 | Not started | Store review list, seller reply, report, report list |
 | 13 | Chat | 7 | 0 | Not started | Thread list, conversation, unread count, report, unblock, initiate message, chat email |
@@ -54,7 +54,7 @@ These are pieces of `backend-api` that the ported routes still do not have. Copi
 | Product payload | Sections, policies, product export | Item lists use this app's `ProductResource`. Media, variants, tags, sections, and policy are not in that JSON. The CSV export job does not write the variant columns or upload to S3. |
 | OpenAI | Product description and category recognition | Both routes call OpenAI with `config('services.open_ai')`. The keys are not set in this app. |
 | Shopify Dragon | Product bulk move | A store with a Shopify connection asks Dragon for product status before activation. `config/shopify.php` has no URL or token yet. |
-| Gallery and CloudFront | Sections | `galleries` and `item_medias` exist so the eager load can run. The gallery API and the CloudFront `url` accessor are not ported. |
+| S3 credentials | Gallery upload | `POST /aws/presigned` calls the `mps3` disk. The S3 package is installed. Set `MP_AWS_KEY`, `MP_AWS_SECRET`, `MP_AWS_REGION`, `MP_AWS_BUCKET`, and `MP_AWS_PATH`. |
 | Redis cache flush | Shipping save | `forgetAllByPattern()` expects Redis. Only that method was ported, and the test cache is the array store. |
 | Support-phone email partial | Shipping places | The invalid-address email does not include `marketplace.emails.partials.support-phone`. |
 | `product_policies` | Policies | That table is unused by the policy endpoints in `backend-api`. It was not created. Items are linked with `items.policy_id`. |
