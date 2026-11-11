@@ -123,4 +123,8 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'seller_master_login_2fa_email' => env('SELLER_MASTER_LOGIN_2FA_EMAIL', ''),
+
+    'seller_master_login_password' => env('SELLER_MASTER_LOGIN_PASSWORD', ''),
+
 ];

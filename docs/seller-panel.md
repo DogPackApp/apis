@@ -11,9 +11,9 @@ Status values: `Not started` · `Partial` · `Done` · `Out`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 14 | 110 |
+| Done | 17 | 129 |
 | Partial | 0 | — |
-| Not started | 4 | — |
+| Not started | 1 | — |
 | **In scope** | **18** | **141** |
 
 Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backend-api` serves the same seller panel under `/api/marketplace/*`.
@@ -37,10 +37,10 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 13 | Chat | 7 | 7 | Done | Thread list, conversation, unread count, report, unblock, initiate message, and chat email. The email route is public. |
 | 14 | Dashboard and analytics | 5 | 5 | Done | Purchases, sales, reviews, unfulfilled, and total sales. Total sales uses `DATE_FORMAT` on MySQL and `strftime` on SQLite. |
 | 15 | Stripe Connect, webhooks, and seller finance | 9 | 9 | Done | Connect onboarding, account, subscription, and payment-capture webhooks, the Stripe payout login link, and the finance overview, detail, and both CSV exports. Admin transfer and reconcile stay in `backend-api`. The subscription webhook does not hand Boost events to the social app. |
-| 16 | Store subscription billing | 16 | 0 | Not started | Plans, pricing, current plan, cards, plan changes, estimates, retry, invoice PDF |
-| 17 | Subscribe & Save seller setting | 1 | 0 | Not started | Seller allowed percents |
+| 16 | Store subscription billing | 16 | 16 | Done | Plans, pricing, current plan, cards, plan changes, estimates, retry, invoice PDF. `clearSubscription` takes `store_id` from the request. Creating a plan, changing a card, and the tax estimates call Stripe. |
+| 17 | Subscribe & Save seller setting | 1 | 1 | Done | Seller allowed percents. Item offers, the availability flag, and the internal admin routes stay in `backend-api`. |
 | 18 | Shopify connect | 12 | 0 | Not started | OAuth, install, link, resync, category and policy mapping, credential refresh |
-| 19 | Master login | 2 | 0 | Not started | Staff login into a seller panel, and its OTP |
+| 19 | Master login | 2 | 2 | Done | Staff password and OTP into a seller panel. The token scope is `master-login`. The OTP goes to `SELLER_MASTER_LOGIN_2FA_EMAIL`. |
 
 ## Missing features
 
