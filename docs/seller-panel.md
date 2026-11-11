@@ -35,7 +35,7 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 11 | Orders and EasyPost labels | 16 | 16 | Done | List, show, cancel, partial refund, manual fulfill, packing slip, weight update, CSV export, timeline, and email render. EasyPost rates, buy, void, and webhook. |
 | 12 | Reviews | 4 | 4 | Done | Store review list, seller reply, report, and report reasons. Buyer review creation stays in `backend-api`. A reply does not send the social push. |
 | 13 | Chat | 7 | 7 | Done | Thread list, conversation, unread count, report, unblock, initiate message, and chat email. The email route is public. |
-| 14 | Dashboard and analytics | 5 | 5 | Done | Purchases, sales, reviews, unfulfilled, and total sales. Total sales uses `DATE_FORMAT` on MySQL and `strftime` on SQLite. |
+| 14 | Dashboard and analytics | 5 | 5 | Done | Purchases, sales, reviews, unfulfilled, and total sales. Total sales groups with MySQL `DATE_FORMAT`. |
 | 15 | Stripe Connect, webhooks, and seller finance | 9 | 9 | Done | Connect onboarding, account, subscription, and payment-capture webhooks, the Stripe payout login link, and the finance overview, detail, and both CSV exports. Admin transfer and reconcile stay in `backend-api`. The subscription webhook does not hand Boost events to the social app. |
 | 16 | Store subscription billing | 16 | 16 | Done | Plans, pricing, current plan, cards, plan changes, estimates, retry, invoice PDF. `clearSubscription` takes `store_id` from the request. Creating a plan, changing a card, and the tax estimates call Stripe. |
 | 17 | Subscribe & Save seller setting | 1 | 1 | Done | Seller allowed percents. Item offers, the availability flag, and the internal admin routes stay in `backend-api`. |
