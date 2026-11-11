@@ -74,6 +74,18 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/seller/chat.php'));
 
             Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/dashboard.php'));
+
+            Route::middleware('api')
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/stripe-webhooks.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/finance.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
                 ->prefix('api/misc')
                 ->group(base_path('routes/misc.php'));
         },
