@@ -44,6 +44,13 @@ trait RespondsWithSellerJson
         ], Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
+    protected function success(mixed $data = [], int $status = Response::HTTP_OK): JsonResponse
+    {
+        return response()->json([
+            'data' => $data,
+        ], $status);
+    }
+
     protected function successResponseWithData(mixed $data = [], mixed $message = null, int $status = Response::HTTP_OK): JsonResponse
     {
         return response()->json([

@@ -45,7 +45,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return Store::query()
-                ->select(['id', 'seller_id', 'uuid', 'name', 'slug', 'status', 'image', 'cover_image', 'stripe_status', 'stripe_account_id', 'timezone'])
+                ->select(['id', 'seller_id', 'uuid', 'name', 'slug', 'status', 'image', 'cover_image', 'stripe_status', 'stripe_account_id', 'stripe_customer_id', 'pm_type', 'pm_last_four', 'country_id', 'timezone'])
                 ->where('seller_id', $seller->id)
                 ->first();
         });

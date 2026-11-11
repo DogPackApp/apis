@@ -4,12 +4,15 @@ namespace App\Models\Store;
 
 use App\Models\Misc\Country;
 use App\Models\Seller\Seller;
+use App\Models\Stripe\StorePayment;
+use App\Models\Stripe\StoreSubscription;
 use App\Support\Media;
 use Database\Factories\StoreFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
@@ -48,6 +51,9 @@ class Store extends Model
         'is_verified',
         'stripe_account_id',
         'stripe_status',
+        'stripe_customer_id',
+        'pm_type',
+        'pm_last_four',
     ];
 
     protected function casts(): array
@@ -107,6 +113,16 @@ class Store extends Model
     public function address(): HasOne
     {
         return $this->hasOne(ShippingAddress::class, 'store_id');
+    }
+
+    public function storesubscription(): HasOne
+    {
+        return $this->hasOne(StoreSubscription::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(StorePayment::class);
     }
 
     public static function _defaultStoreSection(): ?Model

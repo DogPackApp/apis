@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->prefix('api/seller')
                 ->group(base_path('routes/seller/auth.php'));
 
+            Route::middleware('api')
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/master-login.php'));
+
             // Store is registered before account. PUT /api/seller/{seller:uuid} would
             // otherwise match PUT /api/seller/store.
             Route::middleware(['api', 'auth:marketplace'])
@@ -72,6 +76,22 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('api')
                 ->prefix('api/seller')
                 ->group(base_path('routes/seller/chat.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/dashboard.php'));
+
+            Route::middleware('api')
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/stripe-webhooks.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/finance.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/subscribe.php'));
 
             Route::middleware(['api', 'auth:marketplace'])
                 ->prefix('api/misc')
