@@ -2,6 +2,7 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -9,6 +10,8 @@ use Illuminate\Support\Str;
 
 class Refund extends Model
 {
+    use ConvertTimeZone;
+
     protected $guarded = ['id'];
 
     protected static function boot(): void

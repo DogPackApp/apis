@@ -2,6 +2,7 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Product\AttributeOption;
 use App\Models\Product\Discount;
 use App\Models\Product\Item;
@@ -14,6 +15,8 @@ use Illuminate\Support\Str;
 
 class OrderItem extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'uuid',
         'store_order_id',

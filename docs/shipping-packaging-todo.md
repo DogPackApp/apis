@@ -6,7 +6,7 @@ The seller shipping routes are a 1:1 port of `backend-api`. The items below are 
 
 - Paths live under `/api/seller/shipping`, not `/api/marketplace/shipping`. The route list and payloads match.
 - Country rows inside a zone use this app's `CountryResource`, which adds the same flag URL the country list already returns.
-- `ConvertTimeZone` is not ported. These responses do not include converted timestamps.
+- `ConvertTimeZone` converts `created_at` and `updated_at` to the bound store timezone.
 - `EasyPostService::createAddress()` uses the EasyPost PHP SDK. `ShippingPlacesController` catches the vendor `EasyPost\Exception\Api\InvalidRequestException`. Label buying stays with the orders module.
 - `CacheService` here only has `forgetAllByPattern()`. It catches `Throwable`. `backend-api` catches `Exception`, and Laravel 13's array cache throws an `Error` from `getRedis()`, which would skip that catch and return 500 after the rows were written. The call still returns false and the request continues. `StoreFreeShippingService` only carries the two cache-key prefixes. The buyer shipping calculator is not part of this module.
 - The invalid-address email does not include `marketplace.emails.partials.support-phone`. That partial is not in this app.

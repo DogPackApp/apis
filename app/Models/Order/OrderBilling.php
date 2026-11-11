@@ -2,6 +2,7 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use App\Services\Order\CountryService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,8 @@ use Illuminate\Support\Str;
 
 class OrderBilling extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'uuid',
         'store_order_id',

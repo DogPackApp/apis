@@ -2,12 +2,15 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 class ManualFulfillment extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'uuid',
         'order_id',

@@ -2,11 +2,14 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ExportOrders extends Model
 {
+    use ConvertTimeZone;
+
     protected $primaryKey = 'batch_id';
 
     public $incrementing = false;

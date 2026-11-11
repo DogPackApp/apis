@@ -2,12 +2,15 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class EasyPost extends Model
 {
+    use ConvertTimeZone;
+
     public const UNKNOWN = 'unknown';
 
     public const PRE_TRANSIT = 'pre_transit';

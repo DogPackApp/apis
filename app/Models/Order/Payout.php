@@ -2,6 +2,7 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Store\Store;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,8 @@ use Illuminate\Support\Str;
 
 class Payout extends Model
 {
+    use ConvertTimeZone;
+
     const STATUS = [
         Payout::UPCOMING,
         Payout::DEPOSITED,

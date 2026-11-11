@@ -6,7 +6,7 @@ The seller policy routes are a 1:1 port of `backend-api`. The items below are re
 
 - Paths live under `/api/seller/policy`, not `/api/marketplace/policy`. The route list and payloads match.
 - `GET /policy/{uuid}/items` still eager-loads `items.policy` and `items.media`, but the product JSON is this app's `ProductResource`. It does not return media, policy, variants, tags, or sections. `backend-api`'s product resource does.
-- `ConvertTimeZone` is not ported. The policy response does not include timestamps.
+- `ConvertTimeZone` converts `created_at` and `updated_at` to the bound store timezone.
 - `product_policies` exists in `backend-api` and is not used by these endpoints. It was not created here. Items are linked through `items.policy_id`.
 
 ## Authorization

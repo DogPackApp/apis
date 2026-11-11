@@ -2,6 +2,7 @@
 
 namespace App\Models\Review;
 
+use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Order\StoreOrder;
 use App\Models\Product\Item;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,8 @@ use Illuminate\Support\Str;
 
 class ItemReview extends Model
 {
+    use ConvertTimeZone;
+
     protected $guarded = [];
 
     protected $casts = [

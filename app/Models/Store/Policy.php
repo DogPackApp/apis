@@ -2,6 +2,7 @@
 
 namespace App\Models\Store;
 
+use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Product\Item;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,8 @@ use Illuminate\Support\Str;
 
 class Policy extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'name',
         'is_return',
