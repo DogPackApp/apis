@@ -69,7 +69,18 @@ return [
     'google_translate' => [
         'api_key' => env('GOOGLE_TRANSLATE_API_KEY'),
     ],
-    'marketplace_easypost_api' => env('MARKETPLACE_EASYPOST_API'),
+    'marketplace_easypost_api' => env('EASYPOST_API_KEY'),
+
+    'avalara' => [
+        'environment' => env('AVALARA_ENVIRONMENT'),
+        'accountId' => env('AVALARA_ACCOUNT_ID'),
+        'companyId' => env('AVALARA_COMPANY_ID'),
+        'licenseKey' => env('AVALARA_LICENSE_KEY'),
+        'code' => env('AVALARA_COMPANY_CODE'),
+        'machine' => env('AVALARA_MACHINE'),
+        'email' => env('AVALARA_EMAIL'),
+        'password' => env('AVALARA_PASSWORD'),
+    ],
 
     'open_ai' => [
         'ai_product_description_key' => env('OPEN_AI_PRODUCT_DESCRIPTION_KEY'),

@@ -89,6 +89,11 @@ class Store extends Model
         return $slug;
     }
 
+    public function settings(): HasOne
+    {
+        return $this->hasOne(StoreSetting::class);
+    }
+
     public function seller(): BelongsTo
     {
         return $this->belongsTo(Seller::class);

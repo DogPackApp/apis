@@ -58,6 +58,22 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/seller/media.php'));
 
             Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/orders.php'));
+
+            Route::middleware('api')
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/easypost.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/reviews.php'));
+
+            Route::middleware('api')
+                ->prefix('api/seller')
+                ->group(base_path('routes/seller/chat.php'));
+
+            Route::middleware(['api', 'auth:marketplace'])
                 ->prefix('api/misc')
                 ->group(base_path('routes/misc.php'));
         },

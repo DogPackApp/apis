@@ -11,9 +11,9 @@ Status values: `Not started` · `Partial` · `Done` · `Out`
 
 | | Modules | Routes |
 |---|---|---|
-| Done | 9 | 70 |
+| Done | 12 | 97 |
 | Partial | 1 | — |
-| Not started | 8 | — |
+| Not started | 5 | — |
 | **In scope** | **18** | **141** |
 
 Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backend-api` serves the same seller panel under `/api/marketplace/*`.
@@ -32,9 +32,9 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 8 | Shipping and packaging | 8 | 8 | Done | Rates, packaging, custom methods, address autocomplete and places. Follow-ups are in `docs/shipping-packaging-todo.md`. |
 | 9 | Products | 11 | 11 | Done | Create, list, show, update, archive, bulk move, categories, facets, AI description, category recognition, and CSV export. Follow-ups are in `docs/products-todo.md`. |
 | 10 | Import, bulk edit, and media | 8 | 8 | Done | Gallery list, S3 presigned upload, CSV import, and bulk product list/update. Subscribe & Save is not on the bulk payload. Follow-ups are in `docs/gallery-todo.md`. |
-| 11 | Orders and EasyPost labels | 16 | 0 | Not started | Seller orders, cancel, partial refund, packing slip, timeline and email render (12). EasyPost rates, buy, void, webhook (4) |
-| 12 | Reviews | 4 | 0 | Not started | Store review list, seller reply, report, report list |
-| 13 | Chat | 7 | 0 | Not started | Thread list, conversation, unread count, report, unblock, initiate message, chat email |
+| 11 | Orders and EasyPost labels | 16 | 16 | Done | List, show, cancel, partial refund, manual fulfill, packing slip, weight update, CSV export, timeline, and email render. EasyPost rates, buy, void, and webhook. |
+| 12 | Reviews | 4 | 4 | Done | Store review list, seller reply, report, and report reasons. Buyer review creation stays in `backend-api`. A reply does not send the social push. |
+| 13 | Chat | 7 | 7 | Done | Thread list, conversation, unread count, report, unblock, initiate message, and chat email. The email route is public. |
 | 14 | Dashboard and analytics | 5 | 0 | Not started | Purchases, sales, reviews, unfulfilled, total sales |
 | 15 | Stripe Connect, webhooks, and seller finance | 9 | 1 | Partial | `POST /seller/stripe/connect` is in. Account webhook, subscription webhook, payment-capture webhook, payouts, and the seller finance overview, detail, and both CSV exports are not. |
 | 16 | Store subscription billing | 16 | 0 | Not started | Plans, pricing, current plan, cards, plan changes, estimates, retry, invoice PDF |
@@ -48,7 +48,7 @@ These are pieces of `backend-api` that the ported routes still do not have. Copi
 
 | Feature | Where | What's missing |
 |---|---|---|
-| EasyPost SDK | Shipping places, orders | `POST /shipping/address/places` posts the address to the EasyPost HTTP API and stores `easypost_id`. The PHP SDK is not installed. Label rates, buy, void, and the webhook are still in the orders module. |
+| EasyPost | Shipping places and order labels | Address places still posts to the EasyPost HTTP API. Label rates, buy, void, and the webhook use the EasyPost PHP SDK with `MARKETPLACE_EASYPOST_API`. |
 | ConvertTimeZone | Sections, policies, shipping | Responses do not include the converted timestamps from that trait. |
 | `mysql_reader` | Sections, shipping | This app has no reader connection. Those queries use the default database connection. |
 | Product payload | Sections, policies | Seller product list and show include media, variants, tags, sections, policy, customization, discount, and vary-by. Section and policy item lists still use that same resource. |
@@ -57,5 +57,5 @@ These are pieces of `backend-api` that the ported routes still do not have. Copi
 | Shopify Dragon | Product bulk move | A store with a Shopify connection asks Dragon for product status before activation. `config/shopify.php` has no URL or token yet. |
 | S3 credentials | Gallery upload | `POST /aws/presigned` calls the `mps3` disk. The S3 package is installed. Set `MP_AWS_KEY`, `MP_AWS_SECRET`, `MP_AWS_REGION`, `MP_AWS_BUCKET`, and `MP_AWS_PATH`. |
 | Redis cache flush | Shipping save | `forgetAllByPattern()` expects Redis. Only that method was ported, and the test cache is the array store. |
-| Support-phone email partial | Shipping places | The invalid-address email does not include `marketplace.emails.partials.support-phone`. |
+| Support-phone email partial | Order and chat email | `marketplace.emails.header`, `footer`, `main-title`, and `partials.support-phone` are included by the order and chat emails. |
 | `product_policies` | Policies | That table is unused by the policy endpoints in `backend-api`. It was not created. Items are linked with `items.policy_id`. |
