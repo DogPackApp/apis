@@ -50,7 +50,7 @@ Checked against the code on 11 Nov 2026. Copied bugs stay in the module notes li
 |---|---|---|---|
 | EasyPost | Shipping places and order labels | In the app | Address places, label rates, buy, void, and the webhook use the EasyPost PHP SDK with `EASYPOST_API_KEY`. |
 | ConvertTimeZone | Sections, policies, shipping | Missing | Responses do not include the converted timestamps from that trait. |
-| `mysql_reader` | Sections, shipping, products | Missing | This app has no reader connection. Those queries use the default database connection. |
+| `mysql_reader` | Sections, shipping, products | Partial | The `mysql_reader` connection reads `DB_READ_HOST`. Seller queries still use the default connection. |
 | Product payload | Sections, policies | Partial | Product list and show load media, variants, tags, sections, policy, customization, discount, and vary-by. Section and policy item lists use `ProductResource` but only eager-load sections and media, so the other fields stay out. |
 | OpenAI | Product description, category recognition, and facet classification | In the app | Description uses `OPEN_AI_PRODUCT_DESCRIPTION_KEY`. Category recognition uses `OPEN_AI_PRODUCT_CATEGORY_KEY`. Facet classification uses `OPEN_AI_KEY_FACET_CLASSIFICATION`. |
 | Google Translate | Product facets | In the app | A non-English facet request calls Google Translate with `GOOGLE_TRANSLATE_API_KEY` when `facet_translations` has no row. Category names for another `X-localization` come from `categories_translation`. |
