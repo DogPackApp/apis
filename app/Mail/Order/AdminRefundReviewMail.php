@@ -2,7 +2,6 @@
 
 namespace App\Mail\Order;
 
-use App\Mail\Marketplace\BaseMailer;
 use App\Services\Order\CountryService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;

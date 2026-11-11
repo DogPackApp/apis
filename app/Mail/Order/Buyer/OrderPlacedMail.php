@@ -2,7 +2,7 @@
 
 namespace App\Mail\Order\Buyer;
 
-use App\Mail\Marketplace\BaseMailer;
+use App\Mail\Order\BaseMailer;
 use App\Models\Order\StoreOrder;
 use App\Services\Order\AmountService;
 use App\Services\Order\CountryService;
