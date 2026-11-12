@@ -14,6 +14,8 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        $this->shareSqliteReaderConnection();
+
         $http = new RecordingElasticsearchHttpClient;
         $this->app->instance(RecordingElasticsearchHttpClient::class, $http);
         $this->app->instance(Client::class, ClientBuilder::create()
@@ -22,6 +24,29 @@ abstract class TestCase extends BaseTestCase
             ->build());
 
         $this->registerSqliteDateFormat();
+    }
+
+    /**
+     * Seller reads use the mysql_reader connection. Point that name at the
+     * same SQLite database the test already writes to.
+     */
+    private function shareSqliteReaderConnection(): void
+    {
+        $default = DB::connection();
+
+        if ($default->getDriverName() !== 'sqlite') {
+            return;
+        }
+
+        config([
+            'database.connections.mysql_reader' => config('database.connections.sqlite'),
+        ]);
+
+        DB::purge('mysql_reader');
+
+        $reader = DB::connection('mysql_reader');
+        $reader->setPdo($default->getPdo());
+        $reader->setReadPdo($default->getReadPdo());
     }
 
     /**

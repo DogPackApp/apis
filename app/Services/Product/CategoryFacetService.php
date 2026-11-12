@@ -26,7 +26,7 @@ class CategoryFacetService
             $parentCategoryIds = [];
         }
 
-        $query = CategoryFacet::query()
+        $query = CategoryFacet::on('mysql_reader')
             ->select([
                 'id',
                 'category_id',

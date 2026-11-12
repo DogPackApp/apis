@@ -2,11 +2,14 @@
 
 namespace App\Models\Review;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class ItemReviewImage extends Model
 {
+    use ConvertTimeZone;
+
     protected $guarded = [];
 
     protected $primaryKey = 'uuid';

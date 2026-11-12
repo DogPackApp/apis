@@ -2,11 +2,14 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class PaymentDetail extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'uuid',
         'payment_id',

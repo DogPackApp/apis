@@ -2,11 +2,14 @@
 
 namespace App\Models\Store;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class StoreSetting extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'uuid',
         'name',

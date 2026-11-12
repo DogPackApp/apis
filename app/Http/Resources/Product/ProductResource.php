@@ -5,6 +5,7 @@ namespace App\Http\Resources\Product;
 use App\Http\Resources\Store\PolicyResource;
 use App\Http\Resources\Store\SectionResource;
 use App\Models\Product\Item;
+use App\Services\SubscribeSave\SubscribeSaveEligibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use OpenApi\Attributes as OA;
@@ -22,6 +23,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'prices', ref: '#/components/schemas/ProductPrice'),
         new OA\Property(property: 'category', ref: '#/components/schemas/ProductCategory'),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'subscribe_save', type: 'object'),
         new OA\Property(property: 'is_shopify', type: 'boolean'),
     ]
 )]
@@ -65,6 +67,39 @@ class ProductResource extends JsonResource
             'updated_at' => $this->updated_at,
             'facets' => ProductFacetValueResource::collection($this->whenLoaded('activeFacets')),
             'is_shopify' => $this->isShopifyProduct(),
+            'subscribe_save' => $this->subscribeSave(),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     label: bool,
+     *     eligible: bool,
+     *     store_disabled: bool,
+     *     seller_disabled: bool,
+     *     discount_percent: int|null,
+     *     global_discount_percent: int|null,
+     *     effective_discount_percent: int|null,
+     *     dogpack_first_order_percent: int,
+     *     allowed_percents: array<int, int>,
+     *     reason: string|null
+     * }
+     */
+    private function subscribeSave(): array
+    {
+        $eligibility = app(SubscribeSaveEligibilityService::class)->forItem($this->resource);
+
+        return [
+            'label' => $eligibility['show_label'],
+            'eligible' => $eligibility['available_to_customers'],
+            'store_disabled' => $eligibility['store_disabled'],
+            'seller_disabled' => $eligibility['seller_disabled'],
+            'discount_percent' => $eligibility['product_discount_percent'],
+            'global_discount_percent' => $eligibility['global_discount_percent'],
+            'effective_discount_percent' => $eligibility['effective_discount_percent'],
+            'dogpack_first_order_percent' => $eligibility['dogpack_first_order_percent'],
+            'allowed_percents' => $eligibility['allowed_percents'],
+            'reason' => $eligibility['reason'],
         ];
     }
 }

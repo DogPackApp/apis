@@ -5,6 +5,8 @@ use App\Models\Seller\Seller;
 use App\Models\Store\ShippingRate;
 use App\Models\Store\Store;
 use App\Services\OnboardingService;
+use App\Services\Store\EasyPostService;
+use EasyPost\Address;
 use Illuminate\Support\Facades\Http;
 use Laravel\Passport\Passport;
 use Tests\Concerns\InteractsWithSellerAuth;
@@ -166,8 +168,13 @@ test('places saves the google address and the easypost id', function () {
                 ],
             ],
         ]),
-        'api.easypost.com/*' => Http::response(['id' => 'adr_123']),
     ]);
+
+    $easypostAddress = new Address;
+    $easypostAddress->id = 'adr_123';
+    $this->mock(EasyPostService::class, function ($mock) use ($easypostAddress) {
+        $mock->shouldReceive('createAddress')->once()->andReturn($easypostAddress);
+    });
 
     $this->postJson('/api/seller/shipping/address/places', [
         'place_id' => 'place-1',

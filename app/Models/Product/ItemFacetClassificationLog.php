@@ -2,10 +2,13 @@
 
 namespace App\Models\Product;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 
 class ItemFacetClassificationLog extends Model
 {
+    use ConvertTimeZone;
+
     public const UPDATED_AT = null;
 
     protected $fillable = [

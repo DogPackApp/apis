@@ -671,7 +671,7 @@ class ProductRepository
      */
     private function attachImageToProduct(array $images, Item $item): void
     {
-        $gallery = Gallery::query()
+        $gallery = Gallery::on('mysql_reader')
             ->select('id', 'uuid', 'type', 'url')
             ->where('store_id', $item->store_id)
             ->whereIn('uuid', $images)

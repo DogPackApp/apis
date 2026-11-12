@@ -38,6 +38,8 @@ class ProductShowController extends Controller
 
         $item->load([
             'category',
+            'subscribeSaveSetting',
+            'store.settings',
             'policy',
             'tags',
             'discount',

@@ -91,7 +91,7 @@ class ImportProcessCSVJob implements ShouldQueue
 
     private function getStore($storeId): Model|Builder|null
     {
-        return Store::query()
+        return Store::on('mysql_reader')
             ->with('seller:id,email')
             ->where('id', $storeId)
             ->first();

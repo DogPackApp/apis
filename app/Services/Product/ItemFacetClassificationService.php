@@ -339,7 +339,7 @@ class ItemFacetClassificationService
                 )
                 ->implode(' ');
 
-            $facets = CategoryFacet::query()
+            $facets = CategoryFacet::on('mysql_reader')
                 ->select([
                     'id',
                     'title',
@@ -840,7 +840,7 @@ class ItemFacetClassificationService
 
     public static function buildItemQueryForClassification()
     {
-        return Item::query()
+        return Item::on('mysql_reader')
             ->select([
                 'id',
                 'uuid',

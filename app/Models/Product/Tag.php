@@ -2,6 +2,7 @@
 
 namespace App\Models\Product;
 
+use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Seller\Seller;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,8 @@ use Illuminate\Support\Str;
 
 class Tag extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'uuid',
         'name',

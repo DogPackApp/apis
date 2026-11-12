@@ -2,12 +2,15 @@
 
 namespace App\Models\Product;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CategoryFacet extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'title',
         'category_id',

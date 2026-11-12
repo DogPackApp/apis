@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Product\ProductResource;
 use App\Models\Product\Category;
 use App\Models\Product\Item;
+use App\Models\Store\Store;
+use App\Models\SubscribeSave\ItemSubscribeSaveSetting;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -28,6 +31,7 @@ class ProductListController extends Controller
             new OA\Parameter(name: 'sort_by', in: 'query', schema: new OA\Schema(type: 'string', enum: ['title'])),
             new OA\Parameter(name: 'sort_direction', in: 'query', schema: new OA\Schema(type: 'string', enum: ['asc', 'desc'])),
             new OA\Parameter(name: 'type', in: 'query', schema: new OA\Schema(type: 'string', enum: ['DIGITAL', 'PHYSICAL'])),
+            new OA\Parameter(name: 'subscribe_save', in: 'query', schema: new OA\Schema(type: 'boolean')),
         ],
         responses: [
             new OA\Response(
@@ -59,6 +63,7 @@ class ProductListController extends Controller
             'sort_by' => ['nullable', 'in:title'],
             'sort_direction' => ['nullable', 'required_with:sort_by', 'in:asc,desc'],
             'type' => ['nullable', Rule::in(array_keys(Item::TYPES))],
+            'subscribe_save' => ['nullable', 'boolean'],
         ]);
 
         $filters = $validator->validated();
@@ -66,6 +71,8 @@ class ProductListController extends Controller
         $items = Item::query()
             ->with([
                 'category',
+                'subscribeSaveSetting',
+                'store.settings',
                 'policy',
                 'tags',
                 'discount',
@@ -81,6 +88,9 @@ class ProductListController extends Controller
                 'activeFacets',
             ])
             ->where('store_id', $store->id)
+            ->when($request->boolean('subscribe_save'), function (Builder $query) use ($store) {
+                $this->applySubscribeSaveListFilter($query, $store);
+            })
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where('title', 'like', '%'.$search.'%');
             })
@@ -104,5 +114,35 @@ class ProductListController extends Controller
         return ProductResource::collection($items)
             ->response()
             ->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
+     * Seller Subscribe & Save tab: products the seller can turn on or off.
+     * Store must be on and must have a global discount. Category-on products
+     * are included, plus any Admin force_on product. Digital and force_off stay out.
+     * Seller-disabled products stay in the list.
+     */
+    private function applySubscribeSaveListFilter(Builder $query, Store $store): void
+    {
+        $store->loadMissing('settings');
+        $settings = $store->settings;
+
+        if ($settings?->subscribe_save_disabled || $settings?->subscribe_save_discount_percent === null) {
+            $query->whereRaw('0 = 1');
+
+            return;
+        }
+
+        $query->where('type', '!=', Item::TYPES[Item::TYPE_DIGITAL])
+            ->where(function (Builder $query) {
+                $query->whereHas('category', function (Builder $category) {
+                    $category->where('subscribe_save_enabled', true);
+                })->orWhereHas('subscribeSaveSetting', function (Builder $setting) {
+                    $setting->where('admin_override', ItemSubscribeSaveSetting::ADMIN_OVERRIDE_FORCE_ON);
+                });
+            })
+            ->whereDoesntHave('subscribeSaveSetting', function (Builder $setting) {
+                $setting->where('admin_override', ItemSubscribeSaveSetting::ADMIN_OVERRIDE_FORCE_OFF);
+            });
     }
 }

@@ -2,11 +2,14 @@
 
 namespace App\Models\Chat;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class ChatUser extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'uuid',
         'first_name',

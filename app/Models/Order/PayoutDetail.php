@@ -2,12 +2,15 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class PayoutDetail extends Model
 {
+    use ConvertTimeZone;
+
     protected $casts = [
         'collection' => 'boolean',
     ];

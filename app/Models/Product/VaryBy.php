@@ -2,12 +2,15 @@
 
 namespace App\Models\Product;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class VaryBy extends Model
 {
+    use ConvertTimeZone;
+
     protected $table = 'vary_by';
 
     protected $fillable = [

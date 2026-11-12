@@ -2,6 +2,7 @@
 
 namespace App\Models\Product;
 
+use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Store\Store;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,8 @@ use Illuminate\Support\Str;
 
 class Gallery extends Model
 {
+    use ConvertTimeZone;
+
     public const TYPE_IMAGE = 'image';
 
     public const TYPE_VIDEO = 'video';

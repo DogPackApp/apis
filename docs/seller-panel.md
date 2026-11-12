@@ -12,8 +12,8 @@ Status values: `Not started` · `Partial` · `Done` · `Out`
 | | Modules | Routes |
 |---|---|---|
 | Done | 17 | 129 |
-| Partial | 0 | — |
-| Not started | 1 | — |
+| Partial | 0 | 0 |
+| Not started | 1 | 12 |
 | **In scope** | **18** | **141** |
 
 Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backend-api` serves the same seller panel under `/api/marketplace/*`.
@@ -38,24 +38,24 @@ Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backen
 | 14 | Dashboard and analytics | 5 | 5 | Done | Purchases, sales, reviews, unfulfilled, and total sales. Total sales groups with MySQL `DATE_FORMAT`. |
 | 15 | Stripe Connect, webhooks, and seller finance | 9 | 9 | Done | Connect onboarding, account, subscription, and payment-capture webhooks, the Stripe payout login link, and the finance overview, detail, and both CSV exports. Admin transfer and reconcile stay in `backend-api`. The subscription webhook does not hand Boost events to the social app. |
 | 16 | Store subscription billing | 16 | 16 | Done | Plans, pricing, current plan, cards, plan changes, estimates, retry, invoice PDF. `clearSubscription` takes `store_id` from the request. Creating a plan, changing a card, and the tax estimates call Stripe. |
-| 17 | Subscribe & Save seller setting | 1 | 1 | Done | Seller allowed percents. Item offers, the availability flag, and the internal admin routes stay in `backend-api`. |
+| 17 | Subscribe & Save seller setting | 1 | 1 | Done | Allowed percents, the product `subscribe_save` block, saving a product discount, and the product list filter. Customer offers, the availability column, and the internal admin routes stay in `backend-api`. |
 | 18 | Shopify connect | 12 | 0 | Not started | OAuth, install, link, resync, category and policy mapping, credential refresh |
 | 19 | Master login | 2 | 2 | Done | Staff password and OTP into a seller panel. The token scope is `master-login`. The OTP goes to `SELLER_MASTER_LOGIN_2FA_EMAIL`. |
 
 ## Missing features
 
-These are pieces of `backend-api` that the ported routes still do not have. Copied bugs stay in the module notes linked above.
+Checked against the code on 11 Nov 2026. Copied bugs stay in the module notes linked above. Shopify connect is the only module not started.
 
-| Feature | Where | What's missing |
-|---|---|---|
-| EasyPost | Shipping places and order labels | Address places still posts to the EasyPost HTTP API. Label rates, buy, void, and the webhook use the EasyPost PHP SDK with `MARKETPLACE_EASYPOST_API`. |
-| ConvertTimeZone | Sections, policies, shipping | Responses do not include the converted timestamps from that trait. |
-| `mysql_reader` | Sections, shipping | This app has no reader connection. Those queries use the default database connection. |
-| Product payload | Sections, policies | Seller product list and show include media, variants, tags, sections, policy, customization, discount, and vary-by. Section and policy item lists still use that same resource. |
-| OpenAI | Product description, category recognition, and facet classification | Description uses `OPEN_AI_PRODUCT_DESCRIPTION_KEY`. Category recognition uses `OPEN_AI_PRODUCT_CATEGORY_KEY`. Facet classification uses `OPEN_AI_KEY_FACET_CLASSIFICATION`. |
-| Google Translate | Product facets | A non-English facet request calls Google Translate with `GOOGLE_TRANSLATE_API_KEY` when `facet_translations` has no row. Category names for another `X-localization` come from `categories_translation`. |
-| Shopify Dragon | Product bulk move | A store with a Shopify connection asks Dragon for product status before activation. `config/shopify.php` has no URL or token yet. |
-| S3 credentials | Gallery upload | `POST /aws/presigned` calls the `mps3` disk. The S3 package is installed. Set `MP_AWS_KEY`, `MP_AWS_SECRET`, `MP_AWS_REGION`, `MP_AWS_BUCKET`, and `MP_AWS_PATH`. |
-| Redis cache flush | Shipping save | `forgetAllByPattern()` expects Redis. Only that method was ported, and the test cache is the array store. |
-| Support-phone email partial | Order and chat email | `marketplace.emails.header`, `footer`, `main-title`, and `partials.support-phone` are included by the order and chat emails. |
-| `product_policies` | Policies | That table is unused by the policy endpoints in `backend-api`. It was not created. Items are linked with `items.policy_id`. |
+| Feature | Where | Status | Where it stands |
+|---|---|---|---|
+| EasyPost | Shipping places and order labels | In the app | Address places, label rates, buy, void, and the webhook use the EasyPost PHP SDK with `EASYPOST_API_KEY`. |
+| ConvertTimeZone | Sections, policies, shipping, orders, and the other seller models that use it in `backend-api` | In the app | `created_at` and `updated_at` are converted to the bound store timezone. The same accessors cover `next_payment_attempt`, `current_period_start`, and `current_period_end`. |
+| `mysql_reader` | Sections, shipping, products, orders, finance | In the app | Seller reads that `backend-api` sends to `mysql_reader` use that connection. Tests share the SQLite database under the same name. |
+| Product payload | Sections, policies | Partial | Product list and show load media, variants, tags, sections, policy, customization, discount, and vary-by. Section and policy item lists use `ProductResource` but only eager-load sections and media, so the other fields stay out. |
+| OpenAI | Product description, category recognition, and facet classification | In the app | Description uses `OPEN_AI_PRODUCT_DESCRIPTION_KEY`. Category recognition uses `OPEN_AI_PRODUCT_CATEGORY_KEY`. Facet classification uses `OPEN_AI_KEY_FACET_CLASSIFICATION`. |
+| Google Translate | Product facets | In the app | A non-English facet request calls Google Translate with `GOOGLE_TRANSLATE_API_KEY` when `facet_translations` has no row. Category names for another `X-localization` come from `categories_translation`. |
+| Shopify Dragon | Product bulk move | Partial | A store with a Shopify connection asks Dragon for product status before activation. `config/shopify.php` reads `SHOPIFY_DRAGON_URL` and `SHOPIFY_DRAGON_TOKEN`. Those keys are not in `.env.example`. The Shopify connect routes are not started. |
+| S3 credentials | Gallery upload | In the app | `POST /aws/presigned` calls the `mps3` disk. The S3 package is installed. A live upload needs `MP_AWS_KEY`, `MP_AWS_SECRET`, `MP_AWS_REGION`, `MP_AWS_BUCKET`, and `MP_AWS_PATH`. |
+| Redis cache flush | Shipping save | Partial | `forgetAllByPattern()` expects Redis. The test cache is the array store, so the flush fails quietly and the save still succeeds. |
+| Support-phone email partial | Order, chat, finance, and Stripe email | In the app | `marketplace.emails.header`, `footer`, `main-title`, and `partials.support-phone` are included by those emails. |
+| `product_policies` | Policies | Out | That table is unused by the policy endpoints in `backend-api`. It was not created. Items are linked with `items.policy_id`. |

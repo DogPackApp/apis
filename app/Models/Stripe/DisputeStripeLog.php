@@ -2,10 +2,13 @@
 
 namespace App\Models\Stripe;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 
 class DisputeStripeLog extends Model
 {
+    use ConvertTimeZone;
+
     protected $table = 'dispute_stripe_logs';
 
     protected $fillable = [

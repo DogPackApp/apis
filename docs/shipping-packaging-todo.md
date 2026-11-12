@@ -6,15 +6,15 @@ The seller shipping routes are a 1:1 port of `backend-api`. The items below are 
 
 - Paths live under `/api/seller/shipping`, not `/api/marketplace/shipping`. The route list and payloads match.
 - Country rows inside a zone use this app's `CountryResource`, which adds the same flag URL the country list already returns.
-- `ConvertTimeZone` is not ported. These responses do not include converted timestamps.
-- The EasyPost PHP SDK is not installed. `EasyPostService::createAddress()` posts the same address fields to `https://api.easypost.com/v2/addresses`. `EasyPost\Exception\Api\InvalidRequestException` is a local stand-in so the places catch can load. Label buying stays with the orders module.
+- `ConvertTimeZone` converts `created_at` and `updated_at` to the bound store timezone.
+- `EasyPostService::createAddress()` uses the EasyPost PHP SDK. `ShippingPlacesController` catches the vendor `EasyPost\Exception\Api\InvalidRequestException`. Label buying stays with the orders module.
 - `CacheService` here only has `forgetAllByPattern()`. It catches `Throwable`. `backend-api` catches `Exception`, and Laravel 13's array cache throws an `Error` from `getRedis()`, which would skip that catch and return 500 after the rows were written. The call still returns false and the request continues. `StoreFreeShippingService` only carries the two cache-key prefixes. The buyer shipping calculator is not part of this module.
 - The invalid-address email does not include `marketplace.emails.partials.support-phone`. That partial is not in this app.
 
 ## Copied behavior
 
 - Country ids are checked against `countries`. `backend-api` checks `countries_new`.
-- `deleteShipping()` and excluded-state lookup read the default connection. `backend-api` reads `mysql_reader`, which this app does not have.
+- `deleteShipping()` loads zone countries from `mysql_reader`, and the excluded-state check loads states from `mysql_reader`.
 - `GET /shipping/rates` uses `where(store_id)->orWhereNull(store_id)` with no group. A later `where` on that query would leak other stores' rates.
 - Zone `uuid` is not fillable. Create always assigns a new uuid in `creating`, so the uuid sent by the client is ignored. Zone rates do the same.
 - An existing carrier rate must be sent as `shipping_rates.value`. A plain uuid string is read as an array and errors. The `custom` branch then `updateOrCreate`s with that whole value as the uuid.

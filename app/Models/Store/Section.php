@@ -2,6 +2,7 @@
 
 namespace App\Models\Store;
 
+use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Product\Item;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +11,8 @@ use Illuminate\Support\Str;
 
 class Section extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'store_id',
         'name',

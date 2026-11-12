@@ -2,6 +2,7 @@
 
 namespace App\Models\Product;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,8 @@ use Illuminate\Support\Str;
 
 class Category extends Model
 {
+    use ConvertTimeZone;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -20,6 +23,7 @@ class Category extends Model
         'slug',
         'order',
         'is_active',
+        'subscribe_save_enabled',
         'images_thumb',
         'banner_image',
     ];
@@ -28,6 +32,7 @@ class Category extends Model
     {
         return [
             'is_active' => 'boolean',
+            'subscribe_save_enabled' => 'boolean',
         ];
     }
 

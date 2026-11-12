@@ -2,6 +2,8 @@
 
 namespace App\Services\SubscribeSave;
 
+use App\Models\Product\Item;
+use App\Models\SubscribeSave\ItemSubscribeSaveSetting;
 use App\Models\SubscribeSave\SubscribeSaveSetting;
 use Illuminate\Support\Facades\Cache;
 
@@ -15,6 +17,18 @@ class SubscribeSaveEligibilityService
 
     public const DEFAULT_FREQUENCIES_DAYS = [7, 14, 28];
 
+    public const REASON_STORE_DISABLED = 'store_disabled';
+
+    public const REASON_DIGITAL = 'digital';
+
+    public const REASON_ADMIN_FORCE_OFF = 'admin_force_off';
+
+    public const REASON_CATEGORY_DISABLED = 'category_disabled';
+
+    public const REASON_SELLER_DISABLED = 'seller_disabled';
+
+    public const REASON_NO_SELLER_DISCOUNT = 'no_seller_discount';
+
     private ?array $platformSettings = null;
 
     /**
@@ -23,6 +37,111 @@ class SubscribeSaveEligibilityService
     public function allowedSellerPercents(): array
     {
         return $this->platformSettings()['allowed_seller_percents'];
+    }
+
+    /**
+     * Seller-panel label vs customer-available Subscribe & Save for one item.
+     * Category flag is only the product's own category (children are not inherited).
+     *
+     * @return array{
+     *     store_disabled: bool,
+     *     seller_disabled: bool,
+     *     product_discount_percent: int|null,
+     *     global_discount_percent: int|null,
+     *     effective_discount_percent: int|null,
+     *     dogpack_first_order_percent: int,
+     *     allowed_percents: array<int, int>,
+     *     show_label: bool,
+     *     available_to_customers: bool,
+     *     reason: string|null
+     * }
+     */
+    public function forItem(Item $item): array
+    {
+        $item->loadMissing(['category', 'subscribeSaveSetting', 'store.settings']);
+
+        $platform = $this->platformSettings();
+        $setting = $item->subscribeSaveSetting;
+        $storeSettings = $item->store?->settings;
+
+        $productDiscount = $setting?->discount_percent;
+        $globalDiscount = $storeSettings?->subscribe_save_discount_percent;
+        $effectiveDiscount = $productDiscount ?? $globalDiscount;
+
+        $dogpackFirstOrder = $storeSettings?->dogpack_subscribe_save_first_order_percent
+            ?? $platform['dogpack_first_order_percent'];
+
+        $base = [
+            'store_disabled' => (bool) ($storeSettings?->subscribe_save_disabled),
+            'seller_disabled' => (bool) ($setting?->seller_disabled),
+            'product_discount_percent' => $productDiscount,
+            'global_discount_percent' => $globalDiscount,
+            'effective_discount_percent' => $effectiveDiscount,
+            'dogpack_first_order_percent' => $dogpackFirstOrder,
+            'allowed_percents' => $platform['allowed_seller_percents'],
+        ];
+
+        if ((int) $item->type === Item::TYPES[Item::TYPE_DIGITAL]) {
+            return $this->result($base, false, false, self::REASON_DIGITAL);
+        }
+
+        if ($storeSettings?->subscribe_save_disabled) {
+            return $this->result($base, false, false, self::REASON_STORE_DISABLED);
+        }
+
+        $adminOverride = $setting?->admin_override;
+        if ($adminOverride === ItemSubscribeSaveSetting::ADMIN_OVERRIDE_FORCE_OFF) {
+            return $this->result($base, false, false, self::REASON_ADMIN_FORCE_OFF);
+        }
+
+        $categoryEnabled = (bool) ($item->category?->subscribe_save_enabled);
+        $inProgram = $adminOverride === ItemSubscribeSaveSetting::ADMIN_OVERRIDE_FORCE_ON || $categoryEnabled;
+
+        if (! $inProgram) {
+            return $this->result($base, false, false, self::REASON_CATEGORY_DISABLED);
+        }
+
+        if ($setting?->seller_disabled) {
+            return $this->result($base, true, false, self::REASON_SELLER_DISABLED);
+        }
+
+        if ($effectiveDiscount === null) {
+            return $this->result($base, true, false, self::REASON_NO_SELLER_DISCOUNT);
+        }
+
+        return $this->result($base, true, true, null);
+    }
+
+    /**
+     * @param  array{
+     *     store_disabled: bool,
+     *     seller_disabled: bool,
+     *     product_discount_percent: int|null,
+     *     global_discount_percent: int|null,
+     *     effective_discount_percent: int|null,
+     *     dogpack_first_order_percent: int,
+     *     allowed_percents: array<int, int>
+     * }  $base
+     * @return array{
+     *     store_disabled: bool,
+     *     seller_disabled: bool,
+     *     product_discount_percent: int|null,
+     *     global_discount_percent: int|null,
+     *     effective_discount_percent: int|null,
+     *     dogpack_first_order_percent: int,
+     *     allowed_percents: array<int, int>,
+     *     show_label: bool,
+     *     available_to_customers: bool,
+     *     reason: string|null
+     * }
+     */
+    private function result(array $base, bool $showLabel, bool $availableToCustomers, ?string $reason): array
+    {
+        return array_merge($base, [
+            'show_label' => $showLabel,
+            'available_to_customers' => $availableToCustomers,
+            'reason' => $reason,
+        ]);
     }
 
     /**

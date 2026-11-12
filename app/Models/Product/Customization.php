@@ -2,12 +2,15 @@
 
 namespace App\Models\Product;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class Customization extends Model
 {
+    use ConvertTimeZone;
+
     protected $fillable = [
         'item_id',
         'description',

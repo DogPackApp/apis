@@ -2,11 +2,14 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Timeline extends Model
 {
+    use ConvertTimeZone;
+
     // Order Events
     const ORDER_PLACED = 'order.placed';
 

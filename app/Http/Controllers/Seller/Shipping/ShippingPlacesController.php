@@ -20,12 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ShippingPlacesController extends Controller
 {
-    public EasyPostService $easyPostService;
-
-    public function __construct()
-    {
-        $this->easyPostService = new EasyPostService;
-    }
+    public function __construct(public EasyPostService $easyPostService) {}
 
     public function __invoke(Request $request): JsonResponse|array
     {

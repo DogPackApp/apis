@@ -2,6 +2,7 @@
 
 namespace App\Models\Order;
 
+use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Product\Item;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,8 @@ use Illuminate\Support\Str;
 
 class StoreOrder extends Model
 {
+    use ConvertTimeZone;
+
     public static array $paymentStatus = [
         StoreOrder::ORDER_PAYMENT_STATUS_PENDING,
         StoreOrder::ORDER_PAYMENT_STATUS_FAILED,

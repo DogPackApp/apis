@@ -33,7 +33,7 @@ class FinanceOverviewController extends Controller
 
         $storeId = resolve(Store::class)->id;
 
-        $payout = Payout::query()
+        $payout = Payout::on('mysql_reader')
             ->where('store_id', $storeId)
             ->when(
                 $request->filled('transaction_status') && $request->input('transaction_status') !== 'all',
@@ -58,12 +58,12 @@ class FinanceOverviewController extends Controller
             ->orderBy('payout_date', 'desc')
             ->paginate($validator->validated()['per_page'] ?? 10);
 
-        $depositedAmount = Payout::query()
+        $depositedAmount = Payout::on('mysql_reader')
             ->where('store_id', $storeId)
             ->where('status', Payout::DEPOSITED)
             ->sum('amount');
 
-        $upcomingAmount = Payout::query()
+        $upcomingAmount = Payout::on('mysql_reader')
             ->where('store_id', $storeId)
             ->where('status', Payout::UPCOMING)
             ->sum('amount');

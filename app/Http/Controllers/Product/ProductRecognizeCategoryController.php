@@ -120,7 +120,7 @@ class ProductRecognizeCategoryController extends Controller
                 return response()->json(['errors' => 'Not able to assign category to the product.'], 422);
             }
 
-            $found_category = Category::query()->where('id', $parsed['id'])->where('is_active', 1)->first();
+            $found_category = Category::on('mysql_reader')->where('id', $parsed['id'])->where('is_active', 1)->first();
 
             if (! isset($found_category)) {
                 return response()->json(['errors' => 'Category could not be suggested based on the current product name and description.'], 404);
