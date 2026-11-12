@@ -71,6 +71,8 @@ return [
     ],
     'marketplace_easypost_api' => env('EASYPOST_API_KEY'),
 
+    'cron_server' => env('CRON_SERVER'),
+
     'avalara' => [
         'environment' => env('AVALARA_ENVIRONMENT'),
         'accountId' => env('AVALARA_ACCOUNT_ID'),
