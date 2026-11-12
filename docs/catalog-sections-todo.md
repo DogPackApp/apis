@@ -8,7 +8,7 @@ The seller section routes are a 1:1 port of `backend-api`. The items below are r
 - `GET /store/section/{uuid}/items` still eager-loads `items.sections` and `items.media`, but the product JSON is this app's `ProductResource`. It does not return media, sections, variants, tags, or policy. `backend-api`'s product resource does.
 - `Gallery` and `item_medias` exist only so that eager load can run. The gallery API and the CloudFront `url` accessor are not ported.
 - `ConvertTimeZone` converts `created_at` and `updated_at` to the bound store timezone.
-- `SectionService::fetchSections()` reads the default connection. `backend-api` reads `mysql_reader`, which this app does not have. The seller list endpoint does not call `fetchSections()`.
+- `SectionService::fetchSections()` reads `mysql_reader`. The seller list endpoint does not call `fetchSections()`.
 
 ## Authorization
 

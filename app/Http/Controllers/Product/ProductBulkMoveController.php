@@ -125,7 +125,7 @@ class ProductBulkMoveController extends Controller
 
         $shopifyProductIds = $shopifyItems->pluck('source_id')->toArray();
 
-        $useNewShopifyPipeline = StoreShopifyConnection::query()
+        $useNewShopifyPipeline = StoreShopifyConnection::on('mysql_reader')
             ->where('store_id', $store->id)
             ->exists();
 

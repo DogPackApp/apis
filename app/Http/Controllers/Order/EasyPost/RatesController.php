@@ -55,7 +55,7 @@ class RatesController extends Controller
 
             $order->load('customer', 'store.address', 'items', 'store.defaultPackaging', 'store.country');
 
-            $package = Packaging::query()
+            $package = Packaging::on('mysql_reader')
                 ->where('uuid', $validator->validated()['package'] ?? null)
                 ->first() ?? $order->store->defaultPackaging;
 

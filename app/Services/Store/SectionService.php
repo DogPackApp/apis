@@ -13,7 +13,7 @@ class SectionService
 {
     public function fetchSections($store): Collection|array
     {
-        return Section::query()
+        return Section::on('mysql_reader')
             ->where('is_visible', 1)
             ->whereHas('items', function ($query) {
                 $query->where('status', Item::STATUS[Item::STATUS_ACTIVE]);

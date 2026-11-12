@@ -45,7 +45,7 @@ class OrderReceivedMail extends Mailable implements ShouldQueue
 
     public function build()
     {
-        $this->order = StoreOrder::query()
+        $this->order = StoreOrder::on('mysql_reader')
             ->withoutGlobalScope('admin_status_default')
             ->with(['store.country', 'customer', 'items', 'orderBilling', 'paymentDetail'])
             ->where('uuid', $this->orderUuid)

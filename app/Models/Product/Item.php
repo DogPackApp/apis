@@ -5,6 +5,7 @@ namespace App\Models\Product;
 use App\Models\Store\Policy;
 use App\Models\Store\Section;
 use App\Models\Store\Store;
+use App\Models\SubscribeSave\ItemSubscribeSaveSetting;
 use Database\Factories\ItemFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -118,6 +119,11 @@ class Item extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function subscribeSaveSetting(): HasOne
+    {
+        return $this->hasOne(ItemSubscribeSaveSetting::class);
     }
 
     public function policy(): BelongsTo

@@ -43,7 +43,7 @@ class FinanceOverviewExportDetailsCsvController extends Controller
 
             $validated = $validator->validated();
 
-            $payout = Payout::query()
+            $payout = Payout::on('mysql_reader')
                 ->where('uuid', $validated['payout_uuid'])
                 ->where('store_id', $store->id)
                 ->first();
@@ -52,7 +52,7 @@ class FinanceOverviewExportDetailsCsvController extends Controller
                 return $this->errorResponse('Payout not found', Response::HTTP_NOT_FOUND);
             }
 
-            $validOrderCount = PayoutDetail::query()
+            $validOrderCount = PayoutDetail::on('mysql_reader')
                 ->where('payout_id', $payout->id)
                 ->whereIn('uuid', $validated['orders'])
                 ->count();

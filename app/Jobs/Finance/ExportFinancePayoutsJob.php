@@ -78,7 +78,7 @@ class ExportFinancePayoutsJob implements ShouldQueue
 
     private function runExport(): void
     {
-        $store = Store::query()
+        $store = Store::on('mysql_reader')
             ->with('country')
             ->where('id', $this->storeId)
             ->first();
@@ -89,7 +89,7 @@ class ExportFinancePayoutsJob implements ShouldQueue
             return;
         }
 
-        $payoutsByUuid = Payout::query()
+        $payoutsByUuid = Payout::on('mysql_reader')
             ->with(['store.country'])
             ->where('store_id', $store->id)
             ->whereIn('uuid', $this->payoutUuids)
@@ -131,7 +131,7 @@ class ExportFinancePayoutsJob implements ShouldQueue
             'url' => $url,
         ]);
 
-        $seller = Seller::query()
+        $seller = Seller::on('mysql_reader')
             ->select('id', 'email')
             ->where('id', $store->seller_id)
             ->first();

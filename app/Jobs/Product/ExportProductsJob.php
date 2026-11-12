@@ -66,7 +66,7 @@ class ExportProductsJob implements ShouldQueue
         $this->batchID = $data['batch_id'];
         $this->status = $data['status'] ?? null;
         $this->store = $data['store_id']
-            ? Store::query()->where('id', $data['store_id'])->first()
+            ? Store::on('mysql_reader')->where('id', $data['store_id'])->first()
             : null;
     }
 
@@ -100,7 +100,7 @@ class ExportProductsJob implements ShouldQueue
                 $query->whereIn('uuid', $products);
             })->get();
 
-        $seller = Seller::query()->select('id', 'email')->where('id', $this->store->seller_id)->first();
+        $seller = Seller::on('mysql_reader')->select('id', 'email')->where('id', $this->store->seller_id)->first();
 
         $filename = 'products-export-'.time().'.csv';
         $path = "exports/csv/{$this->store->slug}/{$filename}";

@@ -36,7 +36,7 @@ class ShippingService
             ->whereIn('shipping_zone_id', $existingShippingZones)
             ->delete();
 
-        $shippingZoneCountriesIds = ShippingZoneCountry::query()
+        $shippingZoneCountriesIds = ShippingZoneCountry::on('mysql_reader')
             ->whereIn('shipping_zone_id', $existingShippingZones)
             ->pluck('id')
             ->toArray();
@@ -144,7 +144,7 @@ class ShippingService
 
             $stateIds = array_unique($stateIds);
 
-            $validStateCount = State::query()
+            $validStateCount = State::on('mysql_reader')
                 ->where('country_id', $countryId)
                 ->whereIn('id', $stateIds)
                 ->count();

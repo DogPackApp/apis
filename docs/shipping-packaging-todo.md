@@ -14,7 +14,7 @@ The seller shipping routes are a 1:1 port of `backend-api`. The items below are 
 ## Copied behavior
 
 - Country ids are checked against `countries`. `backend-api` checks `countries_new`.
-- `deleteShipping()` and excluded-state lookup read the default connection. `backend-api` reads `mysql_reader`, which this app does not have.
+- `deleteShipping()` loads zone countries from `mysql_reader`, and the excluded-state check loads states from `mysql_reader`.
 - `GET /shipping/rates` uses `where(store_id)->orWhereNull(store_id)` with no group. A later `where` on that query would leak other stores' rates.
 - Zone `uuid` is not fillable. Create always assigns a new uuid in `creating`, so the uuid sent by the client is ignored. Zone rates do the same.
 - An existing carrier rate must be sent as `shipping_rates.value`. A plain uuid string is read as an array and errors. The `custom` branch then `updateOrCreate`s with that whole value as the uuid.

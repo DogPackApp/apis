@@ -23,6 +23,7 @@ class Category extends Model
         'slug',
         'order',
         'is_active',
+        'subscribe_save_enabled',
         'images_thumb',
         'banner_image',
     ];
@@ -31,6 +32,7 @@ class Category extends Model
     {
         return [
             'is_active' => 'boolean',
+            'subscribe_save_enabled' => 'boolean',
         ];
     }
 

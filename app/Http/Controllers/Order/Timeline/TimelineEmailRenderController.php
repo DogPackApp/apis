@@ -83,7 +83,7 @@ class TimelineEmailRenderController extends Controller
         // TODO: REHAN: Need to improvise this buddy
         $this->order->load(['customer', 'store.seller', 'orderBilling']);
 
-        $orders = StoreOrder::query()
+        $orders = StoreOrder::on('mysql_reader')
             ->with(['store', 'customer', 'items', 'orderBilling', 'paymentDetail'])
             ->where('uuid', $this->order->uuid)
             ->get();

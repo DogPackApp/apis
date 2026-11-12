@@ -135,7 +135,7 @@ class ExportOrdersJob implements ShouldQueue
                 throw new \Exception('Export order task not found');
             }
 
-            $store = Store::query()
+            $store = Store::on('mysql_reader')
                 ->select('id', 'name', 'slug', 'seller_id', 'country_id')
                 ->with('seller:id,email', 'address', 'country:id,currency_code')
                 ->where('id', $this->storeId)
@@ -147,7 +147,7 @@ class ExportOrdersJob implements ShouldQueue
 
             $this->store = $store;
 
-            $orderQuery = StoreOrder::query()
+            $orderQuery = StoreOrder::on('mysql_reader')
                 ->with('items', 'orderBilling', 'customer', 'manualFulfillment:store_order_id,carrier', 'easypost:store_order_id,rates')
                 ->where('store_id', $this->storeId);
 
@@ -187,7 +187,7 @@ class ExportOrdersJob implements ShouldQueue
             $handle = fopen('php://temp', 'r+');
             fputcsv($handle, fields: $this->columnsToExport);
 
-            $itemsMissingData = Item::query()
+            $itemsMissingData = Item::on('mysql_reader')
                 ->select('id', 'category_id', 'origin')
                 ->with('category:id,ht_code')
                 ->whereIn('id',

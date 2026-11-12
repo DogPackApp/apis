@@ -49,7 +49,7 @@ class OrderPlacedMail extends Mailable implements ShouldQueue
 
     public function build()
     {
-        $this->orders = StoreOrder::query()
+        $this->orders = StoreOrder::on('mysql_reader')
             ->withoutGlobalScope('admin_status_default')
             ->with(['store', 'customer', 'items', 'orderBilling', 'paymentDetail'])
             ->where('order_no', $this->orderId)
