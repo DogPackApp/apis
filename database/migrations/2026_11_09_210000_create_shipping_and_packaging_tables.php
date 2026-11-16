@@ -37,7 +37,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('country_id')->references('id')->on('countries');
+            $table->foreign('country_id')->references('id')->on('marketplace_countries');
         });
 
         Schema::create('shipping_zone_rates', function (Blueprint $table): void {

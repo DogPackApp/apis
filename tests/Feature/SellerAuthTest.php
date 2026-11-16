@@ -37,7 +37,9 @@ test('seller can register and receives a token and otp email', function () {
         ->assertJsonPath('data.status', 0)
         ->assertJsonStructure(['data' => ['uuid', 'first_name', 'last_name', 'email'], 'token']);
 
-    Mail::assertQueued(SellerOTPMail::class);
+    Mail::assertQueued(SellerOTPMail::class, function (SellerOTPMail $mail) {
+        return $mail->queue === 'mkt-high';
+    });
     expect(Seller::query()->where('email', 'ada@example.com')->exists())->toBeTrue();
 });
 
@@ -110,7 +112,9 @@ test('seller login sends otp when 2fa is enabled', function () {
     ])->assertAccepted()
         ->assertJsonPath('message', 'OTP sent to your email.');
 
-    Mail::assertQueued(SellerOTPMail::class);
+    Mail::assertQueued(SellerOTPMail::class, function (SellerOTPMail $mail) {
+        return $mail->queue === 'mkt-high';
+    });
 });
 
 test('seller login otp rejects unknown email', function () {

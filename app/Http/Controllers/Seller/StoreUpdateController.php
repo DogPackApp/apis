@@ -41,7 +41,7 @@ class StoreUpdateController extends Controller
             'description' => ['nullable', 'string'],
             'image' => ['sometimes', 'mimes:jpg,jpeg,png', 'max:1024'],
             'cover' => ['sometimes', 'mimes:jpg,jpeg,png', 'max:1024'],
-            'country_id' => ['sometimes', 'integer', 'exists:countries,id'],
+            'country_id' => ['sometimes', 'integer', 'exists:marketplace_countries,id'],
             'language_id' => ['sometimes', 'integer', 'exists:languages,id'],
             'timezone' => ['sometimes', 'string'],
             'vat_number' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -130,7 +130,7 @@ class StoreUpdateController extends Controller
 
             if ($store->status <= 0) {
                 $seller = $store->loadMissing(['seller'])->seller;
-                Mail::to($seller->email)->send(new SellerWelcomeEmail($seller));
+                Mail::to($seller->email)->queue(new SellerWelcomeEmail($seller));
             }
 
             $store->status = 1;

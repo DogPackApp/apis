@@ -2,7 +2,7 @@
 
 namespace App\Models\Store;
 
-use App\Models\Misc\Country;
+use App\Models\Misc\CountriesNew;
 use App\Models\Misc\State;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -33,7 +33,7 @@ class ShippingZoneCountry extends Model
 
     public function country(): HasOne
     {
-        return $this->hasOne(Country::class, 'id', 'country_id');
+        return $this->hasOne(CountriesNew::class, 'id', 'country_id');
     }
 
     public function excludedStates(): BelongsToMany

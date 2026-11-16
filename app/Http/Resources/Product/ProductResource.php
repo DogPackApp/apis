@@ -5,6 +5,7 @@ namespace App\Http\Resources\Product;
 use App\Http\Resources\Store\PolicyResource;
 use App\Http\Resources\Store\SectionResource;
 use App\Models\Product\Item;
+use App\Models\Product\ProductFieldOwnership;
 use App\Services\SubscribeSave\SubscribeSaveEligibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -37,6 +38,8 @@ class ProductResource extends JsonResource
         return [
             'uuid' => $this->uuid,
             'title' => $this->title,
+            'is_description_edited' => ProductFieldOwnership::isOwnedByDogpack((int) $this->id, 'description'),
+            'is_tags_edited' => ProductFieldOwnership::isOwnedByDogpack((int) $this->id, 'tags'),
             'type' => array_search($this->type, Item::TYPES),
             'description' => $this->description,
             'origin' => $this->origin ?? 'US',
@@ -68,6 +71,7 @@ class ProductResource extends JsonResource
             'facets' => ProductFacetValueResource::collection($this->whenLoaded('activeFacets')),
             'is_shopify' => $this->isShopifyProduct(),
             'subscribe_save' => $this->subscribeSave(),
+            'active_subscriptions_count' => $this->whenHas('active_subscriptions_count', fn ($count) => (int) $count),
         ];
     }
 

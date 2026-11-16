@@ -2,6 +2,7 @@
 
 namespace App\Models\Product;
 
+use App\Models\Order\MarketplaceSubscription;
 use App\Models\Store\Policy;
 use App\Models\Store\Section;
 use App\Models\Store\Store;
@@ -126,6 +127,11 @@ class Item extends Model
         return $this->hasOne(ItemSubscribeSaveSetting::class);
     }
 
+    public function marketplaceSubscriptions(): HasMany
+    {
+        return $this->hasMany(MarketplaceSubscription::class);
+    }
+
     public function policy(): BelongsTo
     {
         return $this->belongsTo(Policy::class);
@@ -220,8 +226,27 @@ class Item extends Model
 
     public function stock(): string
     {
-        $quantity = $this->price?->stock_quantity ?? 0;
+        if (! $this->relationLoaded('varyBy')) {
+            $this->load('varyBy');
+        }
 
-        return "{$quantity} in Stock";
+        $varyByQuantity = $this->varyBy?->quantity ?? false;
+
+        if (! $varyByQuantity) {
+            $itemStockQuantity = ItemPrice::on('mysql_reader')
+                ->where('item_id', $this->id)
+                ->first()
+                ?->stock_quantity ?? 0;
+
+            return "{$itemStockQuantity} in Stock";
+        }
+
+        $variantStockQuantity = ItemVariant::on('mysql_reader')
+            ->where('item_id', $this->id)
+            ->sum('stock_quantity');
+
+        $variantCount = $this->itemVariants()->count() ?? 0;
+
+        return "{$variantStockQuantity} in stock for {$variantCount} variants";
     }
 }

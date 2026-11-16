@@ -17,7 +17,7 @@ class SellerWelcomeEmail extends Mailable implements ShouldQueue
 
     public function __construct(public Seller $seller)
     {
-        $this->onQueue(config('queue.low'));
+        $this->onQueue(config('queue.high'));
     }
 
     public function envelope(): Envelope

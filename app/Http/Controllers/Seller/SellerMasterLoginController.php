@@ -44,7 +44,7 @@ class SellerMasterLoginController extends Controller
             ->generate();
 
         Mail::to(config('app.seller_master_login_2fa_email'))
-            ->send(new SellerOTPMail($seller, $otpService->otp));
+            ->queue(new SellerOTPMail($seller, $otpService->otp));
 
         return response()->json([
             'message' => 'OTP sent to an administrator\'s email',
