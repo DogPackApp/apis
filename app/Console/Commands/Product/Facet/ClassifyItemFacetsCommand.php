@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands\Product;
+namespace App\Console\Commands\Product\Facet;
 
 use App\Models\Product\Item;
 use App\Services\Product\CategoryService;

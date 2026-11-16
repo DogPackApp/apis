@@ -26,6 +26,22 @@ class ProductService
         return $this->productRepository->create($store, $data ?? []);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function createProductFromShopify(Store $store, array $data): void
+    {
+        $this->productRepository->createProductFromShopify($store, $data);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function setProductAsDeleted(array $data): void
+    {
+        $this->productRepository->setProductAsDeleted($data);
+    }
+
     public function updateProduct(Store|Item $store, Item|array $item, ?array $data = null): Item
     {
         if ($store instanceof Item) {

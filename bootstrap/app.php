@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ShopifyAuthMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -96,6 +97,10 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware(['api', 'auth:marketplace'])
                 ->prefix('api/misc')
                 ->group(base_path('routes/misc.php'));
+
+            Route::middleware(['api', 'shopify'])
+                ->prefix('api/marketplace/shopify')
+                ->group(base_path('routes/shopify.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -105,6 +110,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // when the client connected over https:// (e.g. the Swagger UI spec
         // fetch, password reset links, any absolute url()/route() call).
         $middleware->trustProxies(at: '*');
+        $middleware->alias([
+            'shopify' => ShopifyAuthMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

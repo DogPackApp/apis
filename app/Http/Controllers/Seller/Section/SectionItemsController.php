@@ -15,7 +15,24 @@ class SectionItemsController extends Controller
     public function __invoke(Request $request, Section $section): JsonResponse
     {
         try {
-            $section->load(['items.sections', 'items.media']);
+            $section->load([
+                'items.category',
+                'items.subscribeSaveSetting',
+                'items.store.settings',
+                'items.policy',
+                'items.tags',
+                'items.discount',
+                'items.customization',
+                'items.price',
+                'items.medias',
+                'items.media',
+                'items.varyBy',
+                'items.sections',
+                'items.attributes.attributeOptions',
+                'items.itemVariants.media',
+                'items.itemVariants.attributesOption.attribute',
+                'items.activeFacets',
+            ]);
 
             return StoreSectionResource::make($section)
                 ->response()

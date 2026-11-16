@@ -174,5 +174,9 @@ test('policy items return the product uuid', function () {
 
     $this->getJson('/api/seller/policy/'.$uuid.'/items')
         ->assertOk()
-        ->assertJsonPath('data.items.0.uuid', (string) $item->uuid);
+        ->assertJsonPath('data.items.0.uuid', (string) $item->uuid)
+        ->assertJsonPath('data.items.0.tags', [])
+        ->assertJsonPath('data.items.0.medias', [])
+        ->assertJsonPath('data.items.0.sections', [])
+        ->assertJsonPath('data.items.0.itemVariants', []);
 });

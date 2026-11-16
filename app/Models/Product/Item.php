@@ -190,6 +190,11 @@ class Item extends Model
         return $this->hasOne(Customization::class);
     }
 
+    public function sizingChart(): HasOne
+    {
+        return $this->hasOne(ItemSizingChart::class);
+    }
+
     public function unverified(): HasOne
     {
         return $this->hasOne(ItemUnverified::class);

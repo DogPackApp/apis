@@ -97,7 +97,11 @@ test('seller can add and remove items and fetch the section', function () {
     $this->getJson('/api/seller/store/section/'.$section->uuid.'/items')
         ->assertOk()
         ->assertJsonPath('data.uuid', (string) $section->uuid)
-        ->assertJsonPath('data.items.0.uuid', (string) $item->uuid);
+        ->assertJsonPath('data.items.0.uuid', (string) $item->uuid)
+        ->assertJsonPath('data.items.0.tags', [])
+        ->assertJsonPath('data.items.0.medias', [])
+        ->assertJsonPath('data.items.0.itemVariants', [])
+        ->assertJsonPath('data.items.0.policy', null);
 
     $this->deleteJson('/api/seller/store/section/'.$section->uuid.'/items', [
         'items' => [$item->uuid],

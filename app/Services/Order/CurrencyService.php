@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 
 class CurrencyService
 {
-    protected string $appId;
+    protected ?string $appId;
 
     protected int $cacheTtl;
 
@@ -16,7 +16,7 @@ class CurrencyService
 
     public function __construct()
     {
-        $this->appId = config('services.open_exchange_api_key');
+        $this->appId = config('services.open_exchange_api_key') ?: null;
         $this->cacheTtl = config('currency.cache_ttl', 3600);
     }
 
