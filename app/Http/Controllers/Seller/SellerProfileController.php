@@ -28,7 +28,7 @@ class SellerProfileController extends Controller
     )]
     public function __invoke(Request $request): JsonResponse
     {
-        return SellerResource::make($request->user()->load('store'))
+        return SellerResource::make($request->user()->load(['store.country', 'store.storeInfo']))
             ->response()
             ->setStatusCode(Response::HTTP_OK);
     }

@@ -13,5 +13,5 @@ Route::get('/store/subscribe-save/allowed-percents', SubscribeSaveAllowedPercent
 Route::get('/store/address', StoreAddressShowController::class)->name('seller.store.address.show');
 Route::get('/store', StoreShowController::class)->name('seller.store.show');
 Route::post('/store', StoreCreateController::class)->name('seller.store.create');
-Route::put('/store', StoreUpdateController::class)->name('seller.store.update');
+Route::post('/store/{store:uuid}', StoreUpdateController::class)->name('seller.store.update');
 Route::post('/stripe/connect', StoreStripeConnectController::class)->name('seller.store.stripe.connect');

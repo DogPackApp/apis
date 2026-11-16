@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\StoreResource;
+use App\Models\Store\Store;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -25,17 +26,20 @@ class StoreShowController extends Controller
             new OA\Response(
                 response: 404,
                 description: 'The seller has not created a store yet',
-                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string', example: 'Store not found.')])
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string', example: 'No Store Found')])
             ),
             new OA\Response(response: 401, description: 'Unauthenticated'),
         ]
     )]
     public function __invoke(Request $request): JsonResponse
     {
-        $store = $request->user()->store;
+        $store = Store::query()
+            ->with(['country', 'language', 'currency', 'storeInfo', 'settings'])
+            ->where('seller_id', auth()->id())
+            ->first();
 
         if (! $store) {
-            return response()->json(['message' => 'Store not found.'], Response::HTTP_NOT_FOUND);
+            return response()->json(['message' => 'No Store Found'], Response::HTTP_NOT_FOUND);
         }
 
         return StoreResource::make($store)
