@@ -953,6 +953,8 @@ class GoogleMerchantFeedService
         $promotionId = $this->promotionService->promotionIdFor($item, $this->countryCode);
         if ($promotionId !== null) {
             $this->writeGElement($xml, 'promotion_id', $promotionId);
+            // Region tag (ss_us/ss_ca/ss_gb) so Subscribe & Save products can be grouped in Google Ads.
+            $this->writeGElement($xml, 'custom_label_1', 'ss_'.strtolower($this->countryCode));
         }
 
         // Checkout compares the (discounted) order value to the tiers, so use the price the buyer pays.

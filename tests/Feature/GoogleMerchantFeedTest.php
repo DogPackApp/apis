@@ -7,6 +7,7 @@ use App\Models\Seller\OnboardingStatus;
 use App\Models\Store\ShippingZone;
 use App\Models\Store\ShippingZoneCountry;
 use App\Models\Store\Store;
+use App\Models\Store\StoreSetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Tests\Concerns\InteractsWithSellerAuth;
@@ -51,12 +52,18 @@ test('the local google product feed includes an active priced product', function
     ]);
     $zoneCountry->forceFill(['country_id' => 38])->save();
 
+    StoreSetting::query()->create([
+        'store_id' => $store->id,
+        'subscribe_save_discount_percent' => 10,
+    ]);
+
     $item = Item::factory()->create([
         'store_id' => $store->id,
         'status' => Item::STATUS[Item::STATUS_ACTIVE],
         'title' => 'Merchant toy',
         'slug' => 'merchant-toy',
     ]);
+    $item->forceFill(['subscribe_save_available' => true])->save();
 
     ItemPrice::query()->create([
         'item_id' => $item->id,
@@ -75,7 +82,9 @@ test('the local google product feed includes an active priced product', function
     @unlink($path);
 
     expect($xml)->toContain('Merchant toy')
-        ->toContain('10.00 CAD');
+        ->toContain('10.00 CAD')
+        ->toContain('CASS10')
+        ->toContain('ss_ca');
 });
 
 test('an empty subscribe and save promotions file is still written locally', function () {
