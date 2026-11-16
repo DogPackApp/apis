@@ -44,46 +44,50 @@ class ProductRepository
 
     public function create(Store $store, array $data): Item
     {
-        $this->lowestVariantPrice = null;
+        return DB::transaction(function () use ($store, $data): Item {
+            $this->lowestVariantPrice = null;
 
-        $item = $this->createOrUpdateItem($store, $data);
-        $this->syncSizingChart($data, $item);
-        $this->attachImagesToProduct($data, $item);
-        $this->createVariants($data, $item);
-        $this->createVaryBy($data, $item);
-        $this->attachPrice($data, $item);
-        $this->attachCustomization($data, $item);
-        $this->attachTags($store, $data, $item);
-        $this->addItemToSection($store, $item, $data['section'] ?? null);
-        $this->saveDiscount($data, $item);
-        $this->verifyOnboarding($store, $item);
-        $this->syncShopifyExtras($data, $item);
+            $item = $this->createOrUpdateItem($store, $data);
+            $this->syncSizingChart($data, $item);
+            $this->attachImagesToProduct($data, $item);
+            $this->createVariants($data, $item);
+            $this->createVaryBy($data, $item);
+            $this->attachPrice($data, $item);
+            $this->attachCustomization($data, $item);
+            $this->attachTags($store, $data, $item);
+            $this->addItemToSection($store, $item, $data['section'] ?? null);
+            $this->saveDiscount($data, $item);
+            $this->verifyOnboarding($store, $item);
+            $this->syncShopifyExtras($data, $item);
 
-        if (! empty($data['product_id'])) {
-            $this->attachProductId($data, $item);
-        }
+            if (! empty($data['product_id'])) {
+                $this->attachProductId($data, $item);
+            }
 
-        return $item;
+            return $item;
+        });
     }
 
     public function update(Store $store, Item $item, array $data): Item
     {
-        $this->lowestVariantPrice = null;
+        return DB::transaction(function () use ($store, $item, $data): Item {
+            $this->lowestVariantPrice = null;
 
-        $item = $this->createOrUpdateItem($store, $data, $item);
-        $this->syncSizingChart($data, $item);
-        $this->attachImagesToProduct($data, $item);
-        $this->syncVariants($data, $item);
-        $this->createVaryBy($data, $item, update: true);
-        $this->attachPrice($data, $item, update: true);
-        $this->attachCustomization($data, $item, update: true);
-        $this->attachTags($store, $data, $item);
-        $this->addItemToSection($store, $item, $data['section'] ?? null);
-        $this->saveDiscount($data, $item);
-        $this->verifyOnboarding($store, $item);
-        $this->syncShopifyExtras($data, $item);
+            $item = $this->createOrUpdateItem($store, $data, $item);
+            $this->syncSizingChart($data, $item);
+            $this->attachImagesToProduct($data, $item);
+            $this->syncVariants($data, $item);
+            $this->createVaryBy($data, $item, update: true);
+            $this->attachPrice($data, $item, update: true);
+            $this->attachCustomization($data, $item, update: true);
+            $this->attachTags($store, $data, $item);
+            $this->addItemToSection($store, $item, $data['section'] ?? null);
+            $this->saveDiscount($data, $item);
+            $this->verifyOnboarding($store, $item);
+            $this->syncShopifyExtras($data, $item);
 
-        return $item;
+            return $item;
+        });
     }
 
     public function updateBulk(Store $store, Item $item, array $data): Item
@@ -570,22 +574,30 @@ class ProductRepository
             ->where('item_id', $item->id)
             ->get();
         $itemVariantCount = $existingVariants->count();
+        $options = $attributeIds === []
+            ? collect()
+            : AttributeOption::query()->whereIn('attribute_id', $attributeIds)->get();
+        $pivotKeys = VariantCombination::query()
+            ->whereIn('item_variant_id', $existingVariants->pluck('id'))
+            ->get(['item_variant_id', 'attribute_option_id'])
+            ->mapWithKeys(fn (VariantCombination $pivot): array => [
+                $pivot->item_variant_id.'-'.$pivot->attribute_option_id => true,
+            ])
+            ->all();
+
         $variantIds = [];
+        $pivotInserts = [];
 
         foreach ($combinations as $combination) {
-            $variantQuery = ItemVariant::query()->where('item_id', $item->id);
-
-            if ($this->fromShopify) {
-                $variantQuery->where('source_id', $combination['shopify_id']);
+            if ($this->fromShopify && isset($combination['shopify_id'])) {
+                $variant = $existingVariants->firstWhere('source_id', $combination['shopify_id']);
             } elseif (isset($combination['uuid'])) {
-                $variantQuery->where('uuid', $combination['uuid']);
+                $variant = $existingVariants->firstWhere('uuid', $combination['uuid']);
             } else {
-                $variantQuery = null;
+                $variant = null;
             }
 
-            $variant = $variantQuery ? $variantQuery->first() : null;
-
-            if (! $variant) {
+            if ($variant === null) {
                 $variant = new ItemVariant;
                 $itemVariantCount++;
             }
@@ -600,7 +612,7 @@ class ProductRepository
             $variant->weight = isset($combination['weight']) && $combination['weight'] > 0
                 ? $combination['weight']
                 : $variant->weight ?? null;
-            $variant->order = $variant?->order ?? $itemVariantCount++;
+            $variant->order = $variant->order ?? $itemVariantCount++;
             $variant->item_id = $item->id;
             $variant->is_visible = $combination['is_visible'] ?? true;
             $variant->allow_overselling = $combination['allow_overselling'] ?? 0;
@@ -619,31 +631,35 @@ class ProductRepository
                 $this->attachVariantImageToProduct([$combination['image']], $item, $variant->id);
             }
 
-            $optionIds = AttributeOption::query()
+            $optionIds = $options
                 ->whereIn('attribute_value', $this->fetchAttributeValues($combination))
-                ->whereIn('attribute_id', $attributeIds)
-                ->pluck('id')
-                ->all();
+                ->pluck('id');
 
             foreach ($optionIds as $optionId) {
-                $exists = VariantCombination::query()
-                    ->where('attribute_option_id', $optionId)
-                    ->where('item_variant_id', $variant->id)
-                    ->exists();
+                $key = $variant->id.'-'.$optionId;
 
-                if (! $exists) {
-                    VariantCombination::query()->create([
-                        'uuid' => (string) Str::uuid(),
-                        'attribute_option_id' => $optionId,
-                        'item_variant_id' => $variant->id,
-                    ]);
+                if (isset($pivotKeys[$key])) {
+                    continue;
                 }
+
+                $pivotKeys[$key] = true;
+                $pivotInserts[] = [
+                    'uuid' => (string) Str::uuid(),
+                    'attribute_option_id' => $optionId,
+                    'item_variant_id' => $variant->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
+        }
+
+        if ($pivotInserts !== []) {
+            VariantCombination::insert($pivotInserts);
         }
 
         $variantToDelete = array_diff($existingVariants->pluck('id')->all(), $variantIds);
 
-        if (! empty($variantToDelete)) {
+        if ($variantToDelete !== []) {
             VariantCombination::query()->whereIn('item_variant_id', $variantToDelete)->delete();
             ItemMedia::query()->whereIn('item_variant_id', $variantToDelete)->delete();
             ItemVariant::query()

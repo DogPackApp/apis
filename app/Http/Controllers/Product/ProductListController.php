@@ -9,6 +9,7 @@ use App\Models\Product\Category;
 use App\Models\Product\Item;
 use App\Models\Store\Store;
 use App\Models\SubscribeSave\ItemSubscribeSaveSetting;
+use App\Services\Product\ProductListBatch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -70,7 +71,7 @@ class ProductListController extends Controller
         $filters = $validator->validated();
 
         $items = Item::query()
-            ->with(['media', 'category', 'sections', 'policy', 'subscribeSaveSetting', 'store.settings'])
+            ->with(['media', 'category', 'sections', 'policy', 'subscribeSaveSetting', 'store.settings', 'varyBy'])
             ->withCount(['marketplaceSubscriptions as active_subscriptions_count' => function (Builder $query) {
                 $query->where('marketplace_subscriptions.status', MarketplaceSubscription::STATUS_ACTIVE);
             }])
@@ -100,6 +101,8 @@ class ProductListController extends Controller
                 $query->orderByDesc('created_at');
             })
             ->paginate($filters['per_page'] ?? 10);
+
+        app()->instance(ProductListBatch::class, ProductListBatch::fromItems($items->getCollection()));
 
         return ProductResource::collection($items)
             ->response()
