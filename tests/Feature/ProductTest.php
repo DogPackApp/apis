@@ -2,6 +2,7 @@
 
 use App\Jobs\Product\ExportProductsJob;
 use App\Mail\Product\ProductsExportEmail;
+use App\Models\Order\MarketplaceSubscription;
 use App\Models\Product\Category;
 use App\Models\Product\CategoryFacet;
 use App\Models\Product\CategoryTranslation;
@@ -147,7 +148,7 @@ test('creating a DRAFT product skips validation entirely', function () {
 
     $item = Item::query()->where('title', 'Draft Toy')->firstOrFail();
     expect($item->status)->toBe(Item::STATUS[Item::STATUS_DRAFT])
-        ->and($item->price->is_global_pricing)->toBeTrue();
+        ->and($item->price->is_global_pricing)->toBe(1);
 });
 
 test('creating a digital product nulls out stock quantity and weight', function () {
@@ -204,6 +205,78 @@ test('product list filters by status and type', function () {
 
     $response = $this->getJson('/api/seller/product?type=DIGITAL')->assertOk();
     expect(collect($response->json('data'))->pluck('title')->values()->all())->toBe(['Draft Digital']);
+});
+
+test('product list counts active subscriptions', function () {
+    [, $store] = actingSeller();
+    $item = Item::factory()->for($store)->create();
+
+    $subscription = [
+        'email' => 'buyer@dogpackapp.com',
+        'store_id' => $store->id,
+        'item_id' => $item->id,
+        'quantity' => 1,
+        'frequency_days' => 30,
+        'origin_order_at' => now(),
+        'next_order_at' => now()->addDays(30),
+        'shipping_address' => ['line1' => '1 Main'],
+        'frozen_shipping_amount' => 500,
+        'country_id' => 38,
+        'currency' => 'CAD',
+        'stripe_customer_id' => 'cus_test',
+        'stripe_payment_method_id' => 'pm_test',
+        'locked_seller_discount_percent' => 10,
+        'dogpack_first_order_percent_applied' => 20,
+        'last_paid_item_price' => 1250,
+    ];
+
+    MarketplaceSubscription::query()->create($subscription);
+    MarketplaceSubscription::query()->create([...$subscription, 'status' => MarketplaceSubscription::STATUS_CANCELLED]);
+
+    $this->getJson('/api/seller/product')
+        ->assertOk()
+        ->assertJsonPath('data.0.active_subscriptions_count', 1);
+});
+
+test('variant inventory counts the variant stock', function () {
+    actingSeller();
+    $category = makeCategory();
+
+    $this->postJson('/api/seller/product', activeProductPayload($category, [
+        'about' => ['title' => 'Variant Toy'],
+        'item_variations' => [
+            'variants' => [
+                ['name' => 'Size', 'options' => ['Small', 'Medium']],
+            ],
+            'combination' => [
+                [
+                    'variants' => [['type' => 'Size', 'value' => 'Small']],
+                    'domestic_price' => 8,
+                    'quantity' => 3,
+                    'sku' => 'SMALL',
+                    'is_visible' => true,
+                ],
+                [
+                    'variants' => [['type' => 'Size', 'value' => 'Medium']],
+                    'domestic_price' => 10,
+                    'quantity' => 1,
+                    'sku' => 'MED',
+                    'is_visible' => true,
+                ],
+            ],
+            'vary_by' => [
+                'sku' => true,
+                'quantity' => true,
+                'price' => true,
+                'weight' => false,
+            ],
+        ],
+    ]))->assertCreated();
+
+    $this->getJson('/api/seller/product')
+        ->assertOk()
+        ->assertJsonPath('data.0.inventory', '4 in stock for 2 variants')
+        ->assertJsonPath('data.0.vary_by.quantity', 1);
 });
 
 test('seller can show a single product', function () {
@@ -366,12 +439,17 @@ test('seller category list includes the full path', function () {
         'name' => 'Toys',
         'slug' => 'dog-toys',
         'parent_id' => $parent->id,
+        'order' => '14',
         'is_active' => true,
     ]);
 
     $this->getJson('/api/seller/product/category')
         ->assertOk()
-        ->assertJsonFragment(['full_path' => 'Dog supplies > Toys']);
+        ->assertJsonFragment([
+            'full_path' => 'Dog supplies > Toys',
+            'is_active' => 1,
+            'order' => 14,
+        ]);
 });
 
 test('category facets include the parent facet', function () {
@@ -902,14 +980,29 @@ test('product show and list return the saved product details', function () {
         ->assertJsonPath('data.itemVariants.0.sku', 'CHEW-S')
         ->assertJsonPath('data.itemVariants.0.f_id', 'Small')
         ->assertJsonPath('data.itemVariants.0.domestic_price', 8)
+        ->assertJsonPath('data.itemVariants.0.global_price', 0)
         ->assertJsonPath('data.vary_by.price', 1)
-        ->assertJsonPath('data.discount.value', 15);
+        ->assertJsonPath('data.prices.is_global_pricing', 0)
+        ->assertJsonPath('data.prices.allow_overselling', 0)
+        ->assertJsonPath('data.is_description_edited', false)
+        ->assertJsonPath('data.is_tags_edited', false)
+        ->assertJsonPath('data.inventory', '5 in Stock')
+        ->assertJsonPath('data.discount.value', 15)
+        ->assertJsonMissingPath('data.media');
 
     $this->getJson('/api/seller/product')
         ->assertOk()
         ->assertJsonPath('data.0.uuid', (string) $item->uuid)
-        ->assertJsonPath('data.0.medias.0.name', 'Cover')
-        ->assertJsonPath('data.0.discount.value', 15);
+        ->assertJsonPath('data.0.media.name', 'Cover')
+        ->assertJsonPath('data.0.vary_by.price', 1)
+        ->assertJsonPath('data.0.is_description_edited', false)
+        ->assertJsonPath('data.0.is_tags_edited', false)
+        ->assertJsonPath('data.0.category.name', $category->name)
+        ->assertJsonMissingPath('data.0.medias')
+        ->assertJsonMissingPath('data.0.discount')
+        ->assertJsonMissingPath('data.0.itemVariants')
+        ->assertJsonMissingPath('data.0.attributes')
+        ->assertJsonMissingPath('data.0.facets');
 });
 
 test('product show and list return active item facets', function () {
@@ -941,5 +1034,6 @@ test('product show and list return active item facets', function () {
 
     $this->getJson('/api/seller/product')
         ->assertOk()
-        ->assertJsonPath('data.0.facets.0.id', $active->id);
+        ->assertJsonPath('data.0.uuid', (string) $item->uuid)
+        ->assertJsonMissingPath('data.0.facets');
 });

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Product\ProductResource;
+use App\Models\Order\MarketplaceSubscription;
 use App\Models\Product\Category;
 use App\Models\Product\Item;
 use App\Models\Store\Store;
@@ -28,7 +29,7 @@ class ProductListController extends Controller
             new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string', enum: ['ACTIVE', 'DRAFT', 'ARCHIVED', 'DELETED'])),
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'category', in: 'query', schema: new OA\Schema(type: 'string', format: 'uuid')),
-            new OA\Parameter(name: 'sort_by', in: 'query', schema: new OA\Schema(type: 'string', enum: ['title'])),
+            new OA\Parameter(name: 'sort_by', in: 'query', schema: new OA\Schema(type: 'string', enum: ['title', 'active_subscriptions'])),
             new OA\Parameter(name: 'sort_direction', in: 'query', schema: new OA\Schema(type: 'string', enum: ['asc', 'desc'])),
             new OA\Parameter(name: 'type', in: 'query', schema: new OA\Schema(type: 'string', enum: ['DIGITAL', 'PHYSICAL'])),
             new OA\Parameter(name: 'subscribe_save', in: 'query', schema: new OA\Schema(type: 'boolean')),
@@ -60,7 +61,7 @@ class ProductListController extends Controller
             'status' => ['nullable', Rule::in(array_keys(Item::STATUS))],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'category' => ['nullable', 'uuid'],
-            'sort_by' => ['nullable', 'in:title'],
+            'sort_by' => ['nullable', 'in:title,active_subscriptions'],
             'sort_direction' => ['nullable', 'required_with:sort_by', 'in:asc,desc'],
             'type' => ['nullable', Rule::in(array_keys(Item::TYPES))],
             'subscribe_save' => ['nullable', 'boolean'],
@@ -69,24 +70,10 @@ class ProductListController extends Controller
         $filters = $validator->validated();
 
         $items = Item::query()
-            ->with([
-                'category',
-                'subscribeSaveSetting',
-                'store.settings',
-                'policy',
-                'tags',
-                'discount',
-                'customization',
-                'price',
-                'medias',
-                'media',
-                'varyBy',
-                'sections',
-                'attributes.attributeOptions',
-                'itemVariants.media',
-                'itemVariants.attributesOption.attribute',
-                'activeFacets',
-            ])
+            ->with(['media', 'category', 'sections', 'policy', 'subscribeSaveSetting', 'store.settings'])
+            ->withCount(['marketplaceSubscriptions as active_subscriptions_count' => function (Builder $query) {
+                $query->where('marketplace_subscriptions.status', MarketplaceSubscription::STATUS_ACTIVE);
+            }])
             ->where('store_id', $store->id)
             ->when($request->boolean('subscribe_save'), function (Builder $query) use ($store) {
                 $this->applySubscribeSaveListFilter($query, $store);
@@ -105,7 +92,10 @@ class ProductListController extends Controller
                 $query->where('category_id', $category?->id);
             })
             ->when($filters['sort_by'] ?? null && $filters['sort_direction'] ?? null, function ($query) use ($filters) {
-                $query->orderBy($filters['sort_by'], $filters['sort_direction']);
+                $column = $filters['sort_by'] === 'active_subscriptions'
+                    ? 'active_subscriptions_count'
+                    : $filters['sort_by'];
+                $query->orderBy($column, $filters['sort_direction']);
             }, function ($query) {
                 $query->orderByDesc('created_at');
             })

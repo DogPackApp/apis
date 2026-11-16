@@ -46,7 +46,6 @@ class ProductShowController extends Controller
             'customization',
             'price',
             'medias',
-            'media',
             'varyBy',
             'sections',
             'attributes.attributeOptions',

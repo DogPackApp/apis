@@ -30,11 +30,11 @@ class ItemPrice extends Model
         return [
             'domestic_price' => 'integer',
             'global_price' => 'integer',
-            'is_global_pricing' => 'boolean',
+            'is_global_pricing' => 'integer',
             'stock_quantity' => 'integer',
             'weight' => 'integer',
             'unit' => 'integer',
-            'allow_overselling' => 'boolean',
+            'allow_overselling' => 'integer',
         ];
     }
 
