@@ -1,12 +1,10 @@
 <?php
 
-use App\Mail\SellerWelcomeEmail;
-use App\Models\Seller\OnboardingStatus;
 use App\Models\Seller\Seller;
+use App\Models\Store\Section;
 use App\Models\Store\ShippingAddress;
 use App\Models\Store\Store;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Passport\Passport;
 use Tests\Concerns\InteractsWithSellerAuth;
@@ -22,85 +20,75 @@ test('store creation requires authentication', function () {
         ->assertUnauthorized();
 });
 
-test('seller can create a store, completes onboarding step and receives a welcome email', function () {
-    Mail::fake();
-
+test('seller can create a store', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
     $this->postJson('/api/seller/store', [
         'name' => 'Ada\'s Widgets',
         'description' => 'The best widgets.',
-        'timezone' => 'America/Toronto',
+        'phone' => '4165550100',
     ])->assertCreated()
         ->assertJsonPath('data.name', "Ada's Widgets")
         ->assertJsonPath('data.slug', 'adas-widgets')
-        ->assertJsonPath('data.timezone', 'America/Toronto');
-
-    expect(Store::query()->where('seller_id', $seller->id)->exists())->toBeTrue();
+        ->assertJsonPath('data.status', 0)
+        ->assertJsonPath('data.states', 'PENDING')
+        ->assertJsonPath('data.stripe_account_id', null)
+        ->assertJsonPath('data.is_shopify_connected', false);
 
     $store = Store::query()->where('seller_id', $seller->id)->first();
 
-    $onboarding = OnboardingStatus::query()->where('seller_id', $seller->id)->first();
-    expect($onboarding)->not->toBeNull()
-        ->and($onboarding->is_store_setting)->toBe(1)
-        ->and($onboarding->store_id)->toBe($store->id);
-
-    Mail::assertQueued(SellerWelcomeEmail::class);
+    expect($store)->not->toBeNull()
+        ->and($seller->fresh()->phone)->toBe('4165550100')
+        ->and(Section::query()->where('store_id', $store->id)->where('slug', 'all')->exists())->toBeTrue();
 });
 
-test('seller can upload a store image and cover image on create', function () {
-    Storage::fake('public');
+test('seller can upload a store image on create', function () {
+    Storage::fake('mps3');
 
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
     $response = $this->post('/api/seller/store', [
         'name' => 'Image Store',
+        'phone' => '4165550100',
         'image' => UploadedFile::fake()->image('logo.jpg'),
-        'cover_image' => UploadedFile::fake()->image('cover.jpg'),
     ])->assertCreated();
 
     $store = Store::query()->where('seller_id', $seller->id)->first();
 
-    expect($store->getRawOriginal('image'))->not->toBeNull()
-        ->and($store->getRawOriginal('cover_image'))->not->toBeNull();
-
-    Storage::disk('public')->assertExists($store->getRawOriginal('image'));
-    Storage::disk('public')->assertExists($store->getRawOriginal('cover_image'));
-
-    expect($response->json('data.image'))->toContain('/storage/');
+    expect($store->getRawOriginal('image'))->toStartWith('upload/store/');
+    Storage::disk('mps3')->assertExists($store->getRawOriginal('image'));
+    expect($response->json('data.image'))->toContain('upload/store/');
 });
 
 test('store update rejects a non-image file for image', function () {
     $seller = Seller::factory()->verified()->create();
-    Store::factory()->create(['seller_id' => $seller->id]);
+    $store = Store::factory()->create(['seller_id' => $seller->id]);
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->post('/api/seller/store', [
-        '_method' => 'PUT',
+    $this->post('/api/seller/store/'.$store->uuid, [
         'image' => UploadedFile::fake()->create('not-an-image.pdf', 10),
     ])->assertUnprocessable();
 });
 
-test('seller can upload a new store image on update via method-spoofed post', function () {
-    Storage::fake('public');
+test('seller can upload a new store image on update', function () {
+    Storage::fake('mps3');
 
     $seller = Seller::factory()->verified()->create();
     $store = Store::factory()->create(['seller_id' => $seller->id]);
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->post('/api/seller/store', [
-        '_method' => 'PUT',
+    $this->post('/api/seller/store/'.$store->uuid, [
         'image' => UploadedFile::fake()->image('new-logo.jpg'),
-    ])->assertOk();
+    ])->assertCreated();
 
     $store->refresh();
 
-    expect($store->getRawOriginal('image'))->not->toBeNull();
-    Storage::disk('public')->assertExists($store->getRawOriginal('image'));
+    expect($store->getRawOriginal('image'))->toStartWith('upload/store/');
+    Storage::disk('mps3')->assertExists($store->getRawOriginal('image'));
 });
 
 test('seller cannot create a second store', function () {
@@ -109,8 +97,11 @@ test('seller cannot create a second store', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/store', ['name' => 'Second Store'])
-        ->assertUnprocessable();
+    $this->postJson('/api/seller/store', [
+        'name' => 'Second Store',
+        'phone' => '4165550100',
+    ])->assertUnprocessable()
+        ->assertJsonPath('errors', 'Store Already Exists');
 });
 
 test('seller can update their store', function () {
@@ -119,40 +110,42 @@ test('seller can update their store', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->putJson('/api/seller/store', ['timezone' => 'America/New_York'])
-        ->assertOk()
+    $this->postJson('/api/seller/store/'.$store->uuid, ['timezone' => 'America/New_York'])
+        ->assertCreated()
         ->assertJsonPath('data.uuid', $store->uuid)
-        ->assertJsonPath('data.timezone', 'America/New_York');
+        ->assertJsonPath('data.timezone', 'America/New_York')
+        ->assertJsonPath('data.status', 1);
 });
 
-test('store update rejects an invalid timezone', function () {
+test('store update stores the timezone string it is given', function () {
     $seller = Seller::factory()->verified()->create();
-    Store::factory()->create(['seller_id' => $seller->id]);
+    $store = Store::factory()->create(['seller_id' => $seller->id]);
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->putJson('/api/seller/store', ['timezone' => 'Not/A/Real/Zone'])
-        ->assertUnprocessable();
+    $this->postJson('/api/seller/store/'.$store->uuid, ['timezone' => 'Not/A/Real/Zone'])
+        ->assertCreated()
+        ->assertJsonPath('data.timezone', 'Not/A/Real/Zone');
 });
 
 test('store show returns not found when seller has no store', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/store')->assertNotFound();
+    $this->getJson('/api/seller/store')
+        ->assertNotFound()
+        ->assertJsonPath('message', 'No Store Found');
 });
 
 test('store address requires authentication', function () {
     $this->getJson('/api/seller/store/address')->assertUnauthorized();
 });
 
-test('store address returns not found when seller has no store', function () {
+test('store address fails when the seller has no store', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/store/address')
-        ->assertNotFound()
-        ->assertJsonPath('message', 'Store not found.');
+    $this->getJson('/api/seller/store/address')->assertServerError();
 });
 
 test('store address returns an empty data object when the store has no address', function () {

@@ -3,10 +3,11 @@
 namespace App\Models\Store;
 
 use App\Models\Misc\Country;
+use App\Models\Misc\Currency;
+use App\Models\Misc\Language;
 use App\Models\Seller\Seller;
 use App\Models\Stripe\StorePayment;
 use App\Models\Stripe\StoreSubscription;
-use App\Support\Media;
 use Database\Factories\StoreFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -48,6 +49,8 @@ class Store extends Model
         'states',
         'timezone',
         'country_id',
+        'currency_id',
+        'language_id',
         'is_verified',
         'stripe_account_id',
         'stripe_status',
@@ -62,6 +65,8 @@ class Store extends Model
             'status' => 'integer',
             'social_links' => 'array',
             'country_id' => 'integer',
+            'currency_id' => 'integer',
+            'language_id' => 'integer',
             'is_verified' => 'boolean',
         ];
     }
@@ -110,6 +115,44 @@ class Store extends Model
         return $this->belongsTo(Country::class);
     }
 
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
+    public function language(): BelongsTo
+    {
+        return $this->belongsTo(Language::class, 'language_id');
+    }
+
+    public function storeInfo(): HasOne
+    {
+        return $this->hasOne(StoreInfo::class, 'store_id');
+    }
+
+    public function shopifyConnectedShop(): HasOne
+    {
+        return $this->hasOne(ShopifyAccessToken::class, 'store_id');
+    }
+
+    public function getIsShopifyConnectedAttribute(): bool
+    {
+        if ($this->shopifyConnectedShop()->exists()) {
+            return true;
+        }
+
+        return StoreShopifyConnection::query()
+            ->where('store_id', $this->id)
+            ->exists();
+    }
+
+    public static function _storeExists(): bool
+    {
+        return static::query()
+            ->where('seller_id', auth()->user()->id)
+            ->exists();
+    }
+
     public function address(): HasOne
     {
         return $this->hasOne(ShippingAddress::class, 'store_id');
@@ -136,14 +179,34 @@ class Store extends Model
     protected function image(): Attribute
     {
         return Attribute::make(
-            get: fn (?string $value) => Media::url($value),
+            get: function (?string $value): ?string {
+                if (empty($value)) {
+                    return $value;
+                }
+
+                if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+                    return $value;
+                }
+
+                return config('services.marketplace_media').$value;
+            },
         );
     }
 
     protected function coverImage(): Attribute
     {
         return Attribute::make(
-            get: fn (?string $value) => Media::url($value),
+            get: function (?string $value): ?string {
+                if (empty($value)) {
+                    return $value;
+                }
+
+                if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+                    return $value;
+                }
+
+                return config('services.marketplace_media').$value;
+            },
         );
     }
 }
