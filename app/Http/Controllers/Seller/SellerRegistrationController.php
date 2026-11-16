@@ -77,7 +77,7 @@ class SellerRegistrationController extends Controller
                 ->invalidate()
                 ->generate();
 
-            Mail::to($seller->email)->send(new SellerOTPMail($seller, $otpService->otp));
+            Mail::to($seller->email)->queue(new SellerOTPMail($seller, $otpService->otp));
 
             return SellerResource::make($seller)
                 ->additional(['token' => $token])

@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('stripe_account_id', 50)->nullable();
             $table->string('stripe_status')->nullable();
 
-            $table->foreign('country_id')->references('id')->on('countries')->nullOnDelete();
+            $table->foreign('country_id')->references('id')->on('marketplace_countries')->nullOnDelete();
         });
     }
 

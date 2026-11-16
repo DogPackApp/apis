@@ -38,7 +38,7 @@ class SellerTwoFactorOtpController extends Controller
                 ->invalidate()
                 ->generate();
 
-            Mail::to($seller->email)->send(new SellerOTPMail($seller, $otpService->otp));
+            Mail::to($seller->email)->queue(new SellerOTPMail($seller, $otpService->otp));
 
             return response()->json(['message' => 'OTP sent to your email.'], Response::HTTP_OK);
         } catch (\Throwable $e) {

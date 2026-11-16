@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Country extends Model
 {
+    protected $table = 'marketplace_countries';
+
     public $incrementing = false;
 
     public $timestamps = false;

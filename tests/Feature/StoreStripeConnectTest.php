@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Misc\Country;
+use App\Models\Misc\SellerCountry;
 use App\Models\Seller\Seller;
 use App\Models\Store\Store;
 use App\Services\StripeConnectService;
@@ -55,6 +56,11 @@ test('stripe connect creates a new express account and stores the id', function 
 
 test('stripe connect uses the uk config and full agreement for a GB store', function () {
     Country::query()->create([
+        'id' => 230,
+        'short_name' => 'GB',
+        'name' => 'United Kingdom',
+    ]);
+    SellerCountry::query()->create([
         'id' => 230,
         'short_name' => 'GB',
         'name' => 'United Kingdom',

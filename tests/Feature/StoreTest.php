@@ -1,10 +1,12 @@
 <?php
 
+use App\Mail\SellerWelcomeEmail;
 use App\Models\Seller\Seller;
 use App\Models\Store\Section;
 use App\Models\Store\ShippingAddress;
 use App\Models\Store\Store;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Passport\Passport;
 use Tests\Concerns\InteractsWithSellerAuth;
@@ -105,8 +107,10 @@ test('seller cannot create a second store', function () {
 });
 
 test('seller can update their store', function () {
+    Mail::fake();
+
     $seller = Seller::factory()->verified()->create();
-    $store = Store::factory()->create(['seller_id' => $seller->id, 'timezone' => 'UTC']);
+    $store = Store::factory()->create(['seller_id' => $seller->id, 'timezone' => 'UTC', 'status' => 0]);
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
@@ -115,6 +119,10 @@ test('seller can update their store', function () {
         ->assertJsonPath('data.uuid', $store->uuid)
         ->assertJsonPath('data.timezone', 'America/New_York')
         ->assertJsonPath('data.status', 1);
+
+    Mail::assertQueued(SellerWelcomeEmail::class, function (SellerWelcomeEmail $mail) {
+        return $mail->queue === 'mkt-high';
+    });
 });
 
 test('store update stores the timezone string it is given', function () {

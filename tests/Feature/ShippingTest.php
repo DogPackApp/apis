@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Misc\CountriesNew;
 use App\Models\Misc\Country;
 use App\Models\Seller\Seller;
 use App\Models\Store\ShippingRate;
@@ -33,6 +34,12 @@ function shippingCountry(): Country
     $country->short_name = 'US';
     $country->name = 'United States';
     $country->save();
+
+    $shippingCountry = new CountriesNew;
+    $shippingCountry->id = 231;
+    $shippingCountry->short_name = 'US';
+    $shippingCountry->name = 'United States';
+    $shippingCountry->save();
 
     return $country;
 }

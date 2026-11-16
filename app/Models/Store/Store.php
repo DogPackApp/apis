@@ -2,9 +2,9 @@
 
 namespace App\Models\Store;
 
-use App\Models\Misc\Country;
 use App\Models\Misc\Currency;
 use App\Models\Misc\Language;
+use App\Models\Misc\SellerCountry;
 use App\Models\Seller\Seller;
 use App\Models\Stripe\StorePayment;
 use App\Models\Stripe\StoreSubscription;
@@ -112,7 +112,7 @@ class Store extends Model
 
     public function country(): BelongsTo
     {
-        return $this->belongsTo(Country::class);
+        return $this->belongsTo(SellerCountry::class, 'country_id');
     }
 
     public function currency(): BelongsTo

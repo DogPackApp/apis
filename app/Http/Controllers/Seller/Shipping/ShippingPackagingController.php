@@ -35,7 +35,7 @@ class ShippingPackagingController extends Controller
             'shipping.*.uuid' => ['nullable', 'uuid'],
             'shipping.*.name' => ['required', 'string', 'max:255'],
             'shipping.*.country' => ['required', 'array'],
-            'shipping.*.country.*' => ['required', 'integer', 'exists:countries,id'],
+            'shipping.*.country.*' => ['required', 'integer', 'exists:marketplace_countries,id'],
             'shipping.*.excluded_states' => ['nullable', 'array'],
             'shipping.*.excluded_states.*' => ['array'],
             'shipping.*.excluded_states.*.*' => ['integer'],

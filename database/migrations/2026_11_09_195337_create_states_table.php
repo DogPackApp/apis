@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('name', 50);
 
             $table->index(['country_id', 'short_name']);
-            $table->foreign('country_id')->references('id')->on('countries');
+            $table->foreign('country_id')->references('id')->on('marketplace_countries');
         });
     }
 

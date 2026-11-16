@@ -16,7 +16,7 @@ class SellerOTPMail extends Mailable implements ShouldQueue
 
     public function __construct(public mixed $user, public mixed $otp)
     {
-        $this->onQueue(config('queue.low'));
+        $this->onQueue(config('queue.high'));
     }
 
     public function envelope(): Envelope
