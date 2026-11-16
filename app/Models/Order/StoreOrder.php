@@ -4,6 +4,7 @@ namespace App\Models\Order;
 
 use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Product\Item;
+use App\Models\Store\Store;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

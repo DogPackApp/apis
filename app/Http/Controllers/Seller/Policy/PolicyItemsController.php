@@ -15,7 +15,24 @@ class PolicyItemsController extends Controller
     public function __invoke(Request $request, Policy $policy): JsonResponse
     {
         try {
-            $policy->load(['items.policy', 'items.media']);
+            $policy->load([
+                'items.category',
+                'items.subscribeSaveSetting',
+                'items.store.settings',
+                'items.policy',
+                'items.tags',
+                'items.discount',
+                'items.customization',
+                'items.price',
+                'items.medias',
+                'items.media',
+                'items.varyBy',
+                'items.sections',
+                'items.attributes.attributeOptions',
+                'items.itemVariants.media',
+                'items.itemVariants.attributesOption.attribute',
+                'items.activeFacets',
+            ]);
 
             return PolicyResource::make($policy)
                 ->response()

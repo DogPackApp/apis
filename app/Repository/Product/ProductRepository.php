@@ -13,24 +13,32 @@ use App\Models\Product\Item;
 use App\Models\Product\ItemCsv;
 use App\Models\Product\ItemMedia;
 use App\Models\Product\ItemPrice;
+use App\Models\Product\ItemSizingChart;
 use App\Models\Product\ItemVariant;
 use App\Models\Product\Tag;
 use App\Models\Product\VariantCombination;
 use App\Models\Product\VaryBy;
 use App\Models\Store\ItemSection;
+use App\Models\Store\Policy;
 use App\Models\Store\Section;
+use App\Models\Store\ShopifyAccessToken;
 use App\Models\Store\Store;
+use App\Models\Store\StoreShopifyConnection;
 use App\Services\OnboardingService;
 use App\Services\Product\RemoveStopWordsService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class ProductRepository
 {
     private const MAX_SLUG_LENGTH = 60;
 
     private ?int $lowestVariantPrice = null;
+
+    private bool $fromShopify = false;
 
     public function __construct(private readonly OnboardingService $onboardingService) {}
 
@@ -39,6 +47,7 @@ class ProductRepository
         $this->lowestVariantPrice = null;
 
         $item = $this->createOrUpdateItem($store, $data);
+        $this->syncSizingChart($data, $item);
         $this->attachImagesToProduct($data, $item);
         $this->createVariants($data, $item);
         $this->createVaryBy($data, $item);
@@ -48,6 +57,7 @@ class ProductRepository
         $this->addItemToSection($store, $item, $data['section'] ?? null);
         $this->saveDiscount($data, $item);
         $this->verifyOnboarding($store, $item);
+        $this->syncShopifyExtras($data, $item);
 
         if (! empty($data['product_id'])) {
             $this->attachProductId($data, $item);
@@ -61,6 +71,7 @@ class ProductRepository
         $this->lowestVariantPrice = null;
 
         $item = $this->createOrUpdateItem($store, $data, $item);
+        $this->syncSizingChart($data, $item);
         $this->attachImagesToProduct($data, $item);
         $this->syncVariants($data, $item);
         $this->createVaryBy($data, $item, update: true);
@@ -70,6 +81,7 @@ class ProductRepository
         $this->addItemToSection($store, $item, $data['section'] ?? null);
         $this->saveDiscount($data, $item);
         $this->verifyOnboarding($store, $item);
+        $this->syncShopifyExtras($data, $item);
 
         return $item;
     }
@@ -121,11 +133,14 @@ class ProductRepository
             $item = new Item;
         }
 
+        $typeKey = $this->fromShopify
+            ? ($data['about']['type'] ?? Item::TYPE_PHYSICAL)
+            : $data['about']['type'];
         $item->title = $data['about']['title'];
-        $item->type = Item::TYPES[$data['about']['type']];
-        $item->origin = $data['about']['origin'];
+        $item->type = Item::TYPES[$typeKey];
+        $item->origin = $data['about']['origin'] ?? null;
         $item->store_id = $store->id;
-        $item->description = $this->cleanDescription($data['about']['description']);
+        $item->description = $this->cleanDescription($data['about']['description'] ?? '');
 
         if ($isCreating) {
             $item->slug = self::generateProductSlug($item->title);
@@ -133,10 +148,23 @@ class ProductRepository
 
         $item->policy_id = $this->attachPolicy($store, $data['policy'] ?? null);
 
+        if ($this->fromShopify && $item->policy_id === null) {
+            $item->policy_id = Policy::query()
+                ->where('store_id', $store->id)
+                ->where('is_default', 1)
+                ->value('id');
+        }
+
         $categoryId = $item->category_id
             ?? ($item->type === Item::TYPES[Item::TYPE_PHYSICAL] ? 278 : 286);
 
-        if (isset($data['category_tags']['category']) && $data['category_tags']['category'] !== null) {
+        if ($this->fromShopify) {
+            $item->source_id = $data['source_id'];
+
+            if ($item->category_id === null) {
+                $categoryId = $this->shopifyCategoryId($item);
+            }
+        } elseif (isset($data['category_tags']['category']) && $data['category_tags']['category'] !== null) {
             $category = Category::query()->where('uuid', $data['category_tags']['category'])->first();
 
             if ($category) {
@@ -150,12 +178,16 @@ class ProductRepository
             ? Item::STATUS[$data['status']]
             : Item::STATUS[Item::STATUS_ACTIVE];
 
-        if ($itemStatus === Item::STATUS[Item::STATUS_ARCHIVED] || $itemStatus === Item::STATUS[Item::STATUS_DRAFT]) {
+        if (! $this->fromShopify && ($itemStatus === Item::STATUS[Item::STATUS_ARCHIVED] || $itemStatus === Item::STATUS[Item::STATUS_DRAFT])) {
             $item->manually_deactivated = true;
         }
 
-        if ($itemStatus === Item::STATUS[Item::STATUS_ACTIVE]) {
+        if (! $this->fromShopify && $itemStatus === Item::STATUS[Item::STATUS_ACTIVE]) {
             $item->manually_deactivated = false;
+        }
+
+        if ($this->fromShopify && $item->manually_deactivated) {
+            $itemStatus = $item->status;
         }
 
         $item->status = $itemStatus;
@@ -376,11 +408,17 @@ class ProductRepository
             $itemVariant->item_id = $item->id;
             $itemVariant->is_visible = $combination['is_visible'] ?? true;
             $itemVariant->allow_overselling = $combination['allow_overselling'] ?? true;
+            $itemVariant->source_id = $combination['shopify_id'] ?? null;
             $itemVariant->save();
 
             $this->updateLowestPricedCombinationValue($itemVariant->domestic_price);
 
-            if (! empty($combination['image'])) {
+            if ($this->fromShopify && is_array($combination['image'] ?? null)) {
+                $uploaded = $this->uploadShopifyMedia($combination['image'], $item);
+                $combination['image'] = $uploaded[0] ?? null;
+            }
+
+            if (! empty($combination['image']) && is_string($combination['image'])) {
                 $this->attachVariantImageToProduct([$combination['image']], $item, $itemVariant->id);
             }
 
@@ -537,7 +575,9 @@ class ProductRepository
         foreach ($combinations as $combination) {
             $variantQuery = ItemVariant::query()->where('item_id', $item->id);
 
-            if (isset($combination['uuid'])) {
+            if ($this->fromShopify) {
+                $variantQuery->where('source_id', $combination['shopify_id']);
+            } elseif (isset($combination['uuid'])) {
                 $variantQuery->where('uuid', $combination['uuid']);
             } else {
                 $variantQuery = null;
@@ -570,6 +610,15 @@ class ProductRepository
             $this->updateLowestPricedCombinationValue($variant->domestic_price);
             $variantIds[] = $variant->id;
 
+            if ($this->fromShopify && is_array($combination['image'] ?? null)) {
+                $uploaded = $this->uploadShopifyMedia($combination['image'], $item);
+                $combination['image'] = $uploaded[0] ?? null;
+            }
+
+            if (! empty($combination['image']) && is_string($combination['image'])) {
+                $this->attachVariantImageToProduct([$combination['image']], $item, $variant->id);
+            }
+
             $optionIds = AttributeOption::query()
                 ->whereIn('attribute_value', $this->fetchAttributeValues($combination))
                 ->whereIn('attribute_id', $attributeIds)
@@ -589,10 +638,6 @@ class ProductRepository
                         'item_variant_id' => $variant->id,
                     ]);
                 }
-            }
-
-            if (! empty($combination['image'])) {
-                $this->attachVariantImageToProduct([$combination['image']], $item, $variant->id);
             }
         }
 
@@ -661,6 +706,10 @@ class ProductRepository
      */
     private function attachImagesToProduct(array $data, Item $item): void
     {
+        if ($this->fromShopify) {
+            $data['about']['images'] = $this->uploadShopifyMedia($data['about']['images'] ?? [], $item);
+        }
+
         if (isset($data['about']['images'])) {
             $this->attachImageToProduct($data['about']['images'], $item);
         }
@@ -757,6 +806,9 @@ class ProductRepository
      */
     private function saveDiscount(array $data, Item $item): void
     {
+        if ($this->fromShopify) {
+            return;
+        }
         if (! isset($data['discount'])) {
             Discount::query()
                 ->where('item_id', $item->id)
@@ -786,6 +838,9 @@ class ProductRepository
      */
     private function attachCustomization(array $data, Item $item, bool $update = false): void
     {
+        if ($this->fromShopify) {
+            return;
+        }
         $isEnabled = isset($data['about']['customizations']['enabled']) ?? false;
 
         if (! $isEnabled) {
@@ -992,5 +1047,188 @@ class ProductRepository
         $csv->store_id = $item->store_id;
         $csv->item_id = $item->id;
         $csv->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function createProductFromShopify(Store $store, array $data): void
+    {
+        Log::channel('shopify')->info('PRODUCT PAYLOAD RECEIVED FROM SHOPIFY FOR INITIAL SYNC', [
+            'payload' => $data,
+        ]);
+
+        $this->fromShopify = true;
+
+        try {
+            $item = Item::query()->where('source_id', $data['source_id'])->first();
+
+            if ($item) {
+                $this->update($store, $item, $data);
+            } elseif ($data['status'] == Item::STATUS_ACTIVE) {
+                $this->create($store, $data);
+            }
+        } finally {
+            $this->fromShopify = false;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function setProductAsDeleted(array $data): void
+    {
+        $productSourceId = $data['shopify_id'] ?? $data['source_id'] ?? null;
+
+        if ($productSourceId === null) {
+            Log::channel('shopify')->info('PRODUCT DELETION', [
+                'message' => 'missing shopify_id or source_id',
+                'data' => $data,
+            ]);
+
+            return;
+        }
+
+        $item = Item::query()->where('source_id', $productSourceId)->first();
+
+        if ($item !== null) {
+            $storeExistsInShopifyConnection = StoreShopifyConnection::on('mysql_reader')
+                ->where('store_id', $item->store_id)
+                ->exists();
+
+            if ($storeExistsInShopifyConnection) {
+                try {
+                    $item->status = Item::STATUS[Item::STATUS_ARCHIVED];
+                    $item->save();
+                } catch (\Exception $e) {
+                    Log::channel('shopify')->info('PRODUCT DELETION', [
+                        'message' => 'product not found for an item',
+                        'exception' => $e->getMessage(),
+                    ]);
+                }
+
+                return;
+            }
+        }
+
+        if (empty($data['shop_domain'])) {
+            throw new UnprocessableEntityHttpException(
+                'shop_domain is required for legacy Shopify product deletion.'
+            );
+        }
+
+        $shopDomainName = str_replace('.myshopify.com', '', $data['shop_domain']);
+
+        $accessToken = ShopifyAccessToken::query()->where([
+            'shop_domain_name' => $shopDomainName,
+        ])->firstOrFail();
+
+        $item = Item::query()->where([
+            'source_id' => $productSourceId,
+            'store_id' => $accessToken->store_id,
+        ])->firstOrFail();
+
+        $item->status = Item::STATUS[Item::STATUS_DELETED];
+        $item->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function syncSizingChart(array $data, Item $item): void
+    {
+        if (! isset($data['sizing_chart']) || ! is_array($data['sizing_chart'])) {
+            return;
+        }
+
+        ItemSizingChart::query()->updateOrCreate(
+            ['item_id' => $item->id],
+            [
+                'source' => $data['sizing_chart']['source'] ?? null,
+                'charts' => $data['sizing_chart']['charts'] ?? [],
+            ]
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function syncShopifyExtras(array $data, Item $item): void
+    {
+        if (! $this->fromShopify) {
+            return;
+        }
+
+        if (($data['is_bundled_product'] ?? false) === true) {
+            DB::table('bundles')->updateOrInsert(
+                ['item_id' => $item->id],
+                ['created_at' => now(), 'updated_at' => now()]
+            );
+        }
+    }
+
+    private function shopifyCategoryId(Item $item): ?int
+    {
+        $fallback = $item->type === Item::TYPES[Item::TYPE_PHYSICAL] ? 278 : 286;
+
+        try {
+            $isPhysicalProduct = $item->type === Item::TYPES[Item::TYPE_PHYSICAL];
+            $categoriesFilePath = $isPhysicalProduct
+                ? resource_path('marketplace/physicalCategoriesPrompt.json')
+                : resource_path('marketplace/digitalCategoriesPrompt.json');
+            $categories = is_file($categoriesFilePath)
+                ? json_decode((string) file_get_contents($categoriesFilePath), true)
+                : null;
+
+            if (! is_array($categories)) {
+                return Category::query()->whereKey($fallback)->exists() ? $fallback : null;
+            }
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer '.config('services.open_ai.category_key'),
+                'Content-Type' => 'application/json',
+            ])->post('https://api.openai.com/v1/responses', [
+                'model' => 'gpt-4o-mini',
+                'input' => [
+                    ['role' => 'system', 'content' => 'Return JSON only.'],
+                    ['role' => 'user', 'content' => "PRODUCT NAME: {$item->title}\nDESCRIPTION: ".substr((string) $item->description, 0, 2000)],
+                ],
+            ]);
+
+            $parsed = json_decode($response->json('output.0.content.0.text') ?? '', true);
+            $id = (int) ($parsed['id'] ?? 0);
+
+            if ($id > 0 && Category::query()->whereKey($id)->exists()) {
+                return $id;
+            }
+        } catch (\Exception $exception) {
+            Log::info('OpenAI Error', [$exception]);
+        }
+
+        return Category::query()->whereKey($fallback)->exists() ? $fallback : null;
+    }
+
+    /**
+     * @param  array<int, mixed>  $images
+     * @return array<int, string>
+     */
+    private function uploadShopifyMedia(array $images, Item $item): array
+    {
+        $uuids = [];
+
+        foreach ($images as $media) {
+            $gallery = Gallery::query()->updateOrCreate([
+                'url' => is_array($media) ? $media['url'] : $media,
+                'store_id' => $item->store_id,
+            ], [
+                'type' => (is_array($media) && ! empty($media['media_type']))
+                    ? strtolower($media['media_type'])
+                    : Gallery::TYPE_IMAGE,
+            ]);
+
+            $uuids[] = (string) $gallery->uuid;
+        }
+
+        return $uuids;
     }
 }

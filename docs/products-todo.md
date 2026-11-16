@@ -4,18 +4,18 @@ The seller product routes are ported from `backend-api`. The items below were no
 
 ## Repository
 
-- `ProductRepository::create()` and `update()` save the item, price, GTIN, policy, tags, catalog sections, variants, vary-by, customization, discount, and product images. They do not sync bundles or sizing charts. `backend-api`'s repository does.
-- Product images in `about.images` replace the non-variant `item_medias` rows and set `items.media_url` to the first gallery whose type starts with `image`. With no image, the cover becomes `uploads/default-images/empty_product.webp`. Gallery lookup reads `mysql_reader`. Shopify still does not upload images into the gallery.
+- `ProductRepository::create()` and `update()` save the item, price, GTIN, policy, tags, catalog sections, variants, vary-by, customization, discount, and product images. A `sizing_chart` array is stored on `item_sizing_chart`. A Shopify payload with `is_bundled_product` true writes `bundles`, and that table is not in this app.
+- Product images in `about.images` replace the non-variant `item_medias` rows and set `items.media_url` to the first gallery whose type starts with `image`. With no image, the cover becomes `uploads/default-images/empty_product.webp`. Gallery lookup reads `mysql_reader`. A Shopify sync uploads those image URLs into `galleries` first.
 - Customization is saved when `about.customizations.enabled` is present. The check uses `isset`, so a present `enabled: false` still saves a row. Description and limit are stored only when `description_enabled` is true. The update rule rejects `limit` when it is greater than 0 and the description is enabled. A missing customization key deletes the row.
 - Discount is `discount.value` times 100. A limited discount clears its dates. A missing `discount` key deletes the row. Create validation does not include `discount`, so an ACTIVE create cannot store one.
 - Variants come from `item_variations`. Create writes attributes, options, combinations, and `vary_by`. Update replaces missing attribute names and options, then matches combinations by uuid. The item's domestic price becomes the lowest variant price when variants are sent.
-- Variant images are linked from an existing gallery uuid. Shopify does not upload variant images here, and option lookups use the default database connection. `backend-api` reads those options from `mysql`.
+- Variant images are linked from an existing gallery uuid. A Shopify variant image sent as media is uploaded into `galleries` first. Option lookups use the default database connection. `backend-api` reads those options from `mysql`.
 - `createVaryBy()` returns only when both `item_variations` and `vary_by` are missing. Sending variations without `vary_by` still reads that key.
 - Every saved product is attached to the store's `all` section, plus any section uuids in `section`. `order` is set on that `all` section directly because it is not fillable and the column has no default.
 - Tags come from `category_tags.tags`. Missing tags detach every tag. New tag rows include a uuid so the column can be stored. `backend-api`'s bulk insert omits uuid, and it matches tag names with `BINARY`, which this app uses only on MySQL.
 - Shopify field ownership is not applied. A seller update always replaces tags and sections.
 - A selected `policy` uuid is now looked up on `policies` for the seller's store, matching `attachPolicy()`. A missing `policy` key is treated as null. `backend-api` reads `$data['policy']` directly.
-- Shopify field ownership, `getMatchingCategory()`, and `createProductFromShopify()` are not in this repository. Those belong to the Shopify sync, which is still not started.
+- `createProductFromShopify()` is in this repository. When a Shopify product has no category, it asks OpenAI and falls back to category 278 for a physical product and 286 for a digital product, and only when that category row exists.
 
 ## Other gaps
 
