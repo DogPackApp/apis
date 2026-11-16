@@ -13,6 +13,7 @@ use App\Models\Product\Gallery;
 use App\Models\Product\Item;
 use App\Models\Product\ItemMedia;
 use App\Models\Product\ItemPrice;
+use App\Models\Product\ItemVariant;
 use App\Models\Seller\OnboardingStatus;
 use App\Models\Seller\Seller;
 use App\Models\Store\Policy;
@@ -21,6 +22,7 @@ use App\Models\Store\Store;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -277,6 +279,59 @@ test('variant inventory counts the variant stock', function () {
         ->assertOk()
         ->assertJsonPath('data.0.inventory', '4 in stock for 2 variants')
         ->assertJsonPath('data.0.vary_by.quantity', 1);
+
+    $item = Item::query()->where('title', 'Variant Toy')->first();
+    $small = $item->itemVariants()->where('sku', 'SMALL')->first();
+
+    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+        'about' => ['title' => 'Variant Toy', 'is_description_edited' => false],
+        'item_variations' => [
+            'variants' => [
+                ['name' => 'Size', 'options' => ['Small']],
+            ],
+            'combination' => [
+                [
+                    'uuid' => $small->uuid,
+                    'variants' => [['type' => 'Size', 'value' => 'Small']],
+                    'domestic_price' => 9,
+                    'quantity' => 4,
+                    'sku' => 'SMALL',
+                    'is_visible' => true,
+                ],
+            ],
+            'vary_by' => [
+                'sku' => true,
+                'quantity' => false,
+                'price' => true,
+                'weight' => false,
+            ],
+        ],
+    ]))->assertOk();
+
+    expect(ItemVariant::query()->where('item_id', $item->id)->count())->toBe(1)
+        ->and($small->fresh()->domestic_price)->toBe(900)
+        ->and($small->fresh()->stock_quantity)->toBe(4);
+
+    $this->getJson('/api/seller/product')
+        ->assertOk()
+        ->assertJsonPath('data.0.inventory', '5 in Stock')
+        ->assertJsonPath('data.0.vary_by.quantity', 0);
+});
+
+test('product list loads stock and ownership for the page in one query each', function () {
+    [, $store] = actingSeller();
+    Item::factory()->for($store)->count(2)->create();
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    $this->getJson('/api/seller/product')->assertOk();
+
+    $queries = collect(DB::getQueryLog())->pluck('query');
+
+    expect($queries->filter(fn (string $query) => str_contains($query, 'product_field_ownerships'))->count())->toBe(1)
+        ->and($queries->filter(fn (string $query) => str_contains($query, 'item_prices'))->count())->toBe(1)
+        ->and($queries->filter(fn (string $query) => str_contains($query, 'from "item_variants"') || str_contains($query, 'from item_variants'))->count())->toBe(1);
 });
 
 test('seller can show a single product', function () {

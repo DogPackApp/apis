@@ -7,6 +7,7 @@ use App\Models\Store\Policy;
 use App\Models\Store\Section;
 use App\Models\Store\Store;
 use App\Models\SubscribeSave\ItemSubscribeSaveSetting;
+use App\Services\Product\ProductListBatch;
 use Database\Factories\ItemFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -231,21 +232,24 @@ class Item extends Model
         }
 
         $varyByQuantity = $this->varyBy?->quantity ?? false;
+        $batch = app()->bound(ProductListBatch::class) ? app(ProductListBatch::class) : null;
+        $primed = $batch?->has((int) $this->id) ?? false;
 
         if (! $varyByQuantity) {
-            $itemStockQuantity = ItemPrice::on('mysql_reader')
-                ->where('item_id', $this->id)
-                ->first()
-                ?->stock_quantity ?? 0;
+            $quantity = $primed
+                ? ($batch->priceStock[(int) $this->id] ?? 0)
+                : (ItemPrice::query()->where('item_id', $this->id)->value('stock_quantity') ?? 0);
 
-            return "{$itemStockQuantity} in Stock";
+            return "{$quantity} in Stock";
         }
 
-        $variantStockQuantity = ItemVariant::on('mysql_reader')
-            ->where('item_id', $this->id)
-            ->sum('stock_quantity');
-
-        $variantCount = $this->itemVariants()->count() ?? 0;
+        if ($primed) {
+            $variantStockQuantity = $batch->variantStock[(int) $this->id] ?? 0;
+            $variantCount = $batch->variantCount[(int) $this->id] ?? 0;
+        } else {
+            $variantStockQuantity = ItemVariant::query()->where('item_id', $this->id)->sum('stock_quantity');
+            $variantCount = $this->itemVariants()->count() ?? 0;
+        }
 
         return "{$variantStockQuantity} in stock for {$variantCount} variants";
     }
