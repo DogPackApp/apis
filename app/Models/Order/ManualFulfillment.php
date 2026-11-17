@@ -3,8 +3,9 @@
 namespace App\Models\Order;
 
 use App\Models\Concerns\ConvertTimeZone;
+use App\Models\Product\Item;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Str;
 
 class ManualFulfillment extends Model
@@ -14,6 +15,7 @@ class ManualFulfillment extends Model
     protected $fillable = [
         'uuid',
         'order_id',
+        'store_order_id',
         'tracking_number',
         'tracking',
         'tracking_url',
@@ -31,8 +33,15 @@ class ManualFulfillment extends Model
         });
     }
 
-    public function items(): BelongsToMany
+    public function items(): HasManyThrough
     {
-        return $this->belongsToMany(Item::class, 'item_tags', 'tags_id', 'item_id');
+        return $this->hasManyThrough(
+            Item::class,
+            OrderItem::class,
+            'store_order_id',
+            'id',
+            'store_order_id',
+            'product_id',
+        );
     }
 }

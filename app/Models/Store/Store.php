@@ -158,6 +158,11 @@ class Store extends Model
         return $this->hasOne(ShippingAddress::class, 'store_id');
     }
 
+    public function defaultPackaging(): HasOne
+    {
+        return $this->hasOne(Packaging::class, 'store_id')->where('is_default', true);
+    }
+
     public function storesubscription(): HasOne
     {
         return $this->hasOne(StoreSubscription::class);

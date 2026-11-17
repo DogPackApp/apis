@@ -3,6 +3,7 @@
 use App\Models\Misc\CountriesNew;
 use App\Models\Misc\Country;
 use App\Models\Seller\Seller;
+use App\Models\Store\Packaging;
 use App\Models\Store\ShippingRate;
 use App\Models\Store\Store;
 use App\Services\OnboardingService;
@@ -43,6 +44,42 @@ function shippingCountry(): Country
 
     return $country;
 }
+
+test('a store resolves its default packaging', function () {
+    [, $store] = shippingSellerWithStore();
+
+    $other = new Packaging;
+    $other->store_id = $store->id;
+    $other->name = 'Spare box';
+    $other->type = Packaging::PACKING_TYPE[Packaging::PACKING_TYPE_BOX];
+    $other->length = 4;
+    $other->width = 4;
+    $other->height = 4;
+    $other->unit = Packaging::PACKING_UNIT[Packaging::PACKING_UNIT_IN];
+    $other->empty_weight = 1;
+    $other->empty_unit = Packaging::PACKING_WEIGHT[Packaging::PACKING_WEIGHT_LB];
+    $other->is_default = false;
+    $other->save();
+
+    $default = new Packaging;
+    $default->store_id = $store->id;
+    $default->name = 'Mailer';
+    $default->type = Packaging::PACKING_TYPE[Packaging::PACKING_TYPE_BOX];
+    $default->length = 10;
+    $default->width = 8;
+    $default->height = 4;
+    $default->unit = Packaging::PACKING_UNIT[Packaging::PACKING_UNIT_IN];
+    $default->empty_weight = 1;
+    $default->empty_unit = Packaging::PACKING_WEIGHT[Packaging::PACKING_WEIGHT_LB];
+    $default->is_default = true;
+    $default->save();
+
+    $loaded = Store::query()->with('defaultPackaging')->find($store->id);
+
+    expect($loaded->defaultPackaging)->not->toBeNull()
+        ->and($loaded->defaultPackaging->is($default))->toBeTrue()
+        ->and($loaded->defaultPackaging->name)->toBe('Mailer');
+});
 
 test('shipping routes require authentication', function () {
     $this->getJson('/api/marketplace/shipping/rates')->assertUnauthorized();

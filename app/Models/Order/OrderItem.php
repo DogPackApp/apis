@@ -6,6 +6,7 @@ use App\Models\Concerns\ConvertTimeZone;
 use App\Models\Product\AttributeOption;
 use App\Models\Product\Discount;
 use App\Models\Product\Item;
+use App\Models\Product\ItemVariant;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

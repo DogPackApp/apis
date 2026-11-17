@@ -59,7 +59,8 @@ return [
     ],
 
     'marketplace_fe_url' => env('MARKETPLACE_FE_URL'),
-    'marketplace_media' => env('MARKETPLACE_CLOUDFRONT_URL'),
+    'marketplace_media' => env('MARKETPLACE_CLOUDFRONT_URL', 'https://d10gbhi8lknmjk.cloudfront.net/'),
+    'marketplace_images_production' => env('MARKETPLACE_CLOUDFRONT_URL_PROD', 'https://d2n17nl8nzq4od.cloudfront.net/'),
     'website_url' => env('WEBSITE_URL'),
     'website_assets_url' => env('WEBSITE_ASSETS_URL'),
     'support_phone' => env('SUPPORT_PHONE'),
@@ -70,6 +71,7 @@ return [
         'api_key' => env('GOOGLE_TRANSLATE_API_KEY'),
     ],
     'marketplace_easypost_api' => env('EASYPOST_API_KEY'),
+    'open_exchange_api_key' => env('OPEN_EXCHANGE_API_KEY'),
 
     'cron_server' => env('CRON_SERVER'),
 
