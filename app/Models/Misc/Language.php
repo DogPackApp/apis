@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Language extends Model
 {
+    protected $table = 'language';
+
     public $incrementing = false;
 
     public $timestamps = false;

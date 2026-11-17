@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('languages', function (Blueprint $table): void {
+        Schema::create('language', function (Blueprint $table): void {
             $table->unsignedInteger('id')->primary();
             $table->string('name');
             $table->string('short_name', 10);
@@ -20,6 +20,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('languages');
+        Schema::dropIfExists('language');
     }
 };

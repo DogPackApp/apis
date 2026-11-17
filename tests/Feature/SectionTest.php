@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Product\Gallery;
 use App\Models\Product\Item;
+use App\Models\Product\ItemMedia;
 use App\Models\Seller\Seller;
 use App\Models\Store\Section;
 use App\Models\Store\Store;
@@ -115,20 +117,37 @@ test('seller can add and remove items and fetch the section', function () {
     $section = makeSection($store, 'Dogs', 1);
     $item = Item::factory()->create(['store_id' => $store->id]);
 
+    $gallery = new Gallery;
+    $gallery->store_id = $store->id;
+    $gallery->url = 'uploads/products/cover.webp';
+    $gallery->type = 'image/webp';
+    $gallery->save();
+
+    ItemMedia::query()->create([
+        'item_id' => $item->id,
+        'gallery_id' => $gallery->id,
+        'order' => 0,
+    ]);
+
     $this->postJson('/api/marketplace/store/section/'.$section->uuid.'/items', [
         'items' => [$item->uuid],
     ])->assertNoContent();
 
     expect($section->items()->pluck('items.id')->all())->toBe([$item->id]);
 
-    $this->getJson('/api/marketplace/store/section/'.$section->uuid.'/items')
+    $response = $this->getJson('/api/marketplace/store/section/'.$section->uuid.'/items')
         ->assertOk()
         ->assertJsonPath('data.uuid', (string) $section->uuid)
         ->assertJsonPath('data.items.0.uuid', (string) $item->uuid)
-        ->assertJsonPath('data.items.0.tags', [])
-        ->assertJsonPath('data.items.0.medias', [])
-        ->assertJsonPath('data.items.0.itemVariants', [])
-        ->assertJsonPath('data.items.0.policy', null);
+        ->assertJsonPath('data.items.0.title', $item->title)
+        ->assertJsonPath('data.items.0.media_url', $gallery->url)
+        ->assertJsonPath('data.items.0.media.url', $gallery->url)
+        ->assertJsonPath('data.items.0.sections.0.uuid', (string) $section->uuid)
+        ->assertJsonPath('data.items.0.sections.0.name', 'Dogs')
+        ->assertJsonPath('data.items.0.sections.0.slug', $section->slug);
+
+    expect(array_keys($response->json('data.items.0')))->toBe(['uuid', 'title', 'media_url', 'media', 'sections'])
+        ->and(array_keys($response->json('data.items.0.sections.0')))->toBe(['uuid', 'name', 'slug', 'is_visible']);
 
     $this->deleteJson('/api/marketplace/store/section/'.$section->uuid.'/items', [
         'items' => [$item->uuid],

@@ -42,7 +42,7 @@ class StoreUpdateController extends Controller
             'image' => ['sometimes', 'mimes:jpg,jpeg,png', 'max:1024'],
             'cover' => ['sometimes', 'mimes:jpg,jpeg,png', 'max:1024'],
             'country_id' => ['sometimes', 'integer', 'exists:marketplace_countries,id'],
-            'language_id' => ['sometimes', 'integer', 'exists:languages,id'],
+            'language_id' => ['sometimes', 'integer', 'exists:language,id'],
             'timezone' => ['sometimes', 'string'],
             'vat_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'subscribe_save_discount_percent' => [

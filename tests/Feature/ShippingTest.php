@@ -5,6 +5,7 @@ use App\Models\Misc\Country;
 use App\Models\Seller\Seller;
 use App\Models\Store\Packaging;
 use App\Models\Store\ShippingRate;
+use App\Models\Store\ShippingZone;
 use App\Models\Store\Store;
 use App\Services\OnboardingService;
 use App\Services\Store\EasyPostService;
@@ -44,6 +45,31 @@ function shippingCountry(): Country
 
     return $country;
 }
+
+test('the shipping zone list stays cached until shipping is saved', function () {
+    [, $store] = shippingSellerWithStore();
+
+    $zone = new ShippingZone;
+    $zone->store_id = $store->id;
+    $zone->name = 'Domestic';
+    $zone->save();
+
+    $this->getJson('/api/marketplace/shipping/shipping')
+        ->assertOk()
+        ->assertJsonPath('data.0.name', 'Domestic');
+
+    ShippingZone::query()->whereKey($zone->id)->update(['name' => 'International']);
+
+    $this->getJson('/api/marketplace/shipping/shipping')
+        ->assertOk()
+        ->assertJsonPath('data.0.name', 'Domestic');
+
+    ShippingZone::forgetListCache($store->id);
+
+    $this->getJson('/api/marketplace/shipping/shipping')
+        ->assertOk()
+        ->assertJsonPath('data.0.name', 'International');
+});
 
 test('a store resolves its default packaging', function () {
     [, $store] = shippingSellerWithStore();

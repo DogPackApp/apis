@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\SellerWelcomeEmail;
+use App\Models\Misc\Language;
 use App\Models\Seller\Seller;
 use App\Models\Store\Section;
 use App\Models\Store\ShippingAddress;
@@ -134,6 +135,18 @@ test('store update stores the timezone string it is given', function () {
     $this->postJson('/api/marketplace/store/'.$store->uuid, ['timezone' => 'Not/A/Real/Zone'])
         ->assertCreated()
         ->assertJsonPath('data.timezone', 'Not/A/Real/Zone');
+});
+
+test('store show returns the language from the language table', function () {
+    Language::query()->create(['id' => 1, 'name' => 'English', 'short_name' => 'en']);
+
+    $seller = Seller::factory()->verified()->create();
+    Store::factory()->create(['seller_id' => $seller->id, 'language_id' => 1]);
+    Passport::actingAs($seller, ['seller'], 'marketplace');
+
+    $this->getJson('/api/marketplace/store')
+        ->assertOk()
+        ->assertJsonPath('data.language.name', 'English');
 });
 
 test('store show returns not found when seller has no store', function () {
