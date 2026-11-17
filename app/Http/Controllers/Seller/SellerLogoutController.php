@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerLogoutController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/logout',
+        path: '/api/marketplace/seller/logout',
         summary: 'Log the seller out',
         description: 'Revokes the current access token only — a refresh token, if any, is not revoked.',
         security: [['sellerAuth' => []]],

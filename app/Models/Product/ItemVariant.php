@@ -13,6 +13,8 @@ class ItemVariant extends Model
 {
     use ConvertTimeZone;
 
+    const SHOPIFY_DEFAULT_VARIANT = 'Default Title';
+
     protected $fillable = [
         'uuid',
         'item_id',

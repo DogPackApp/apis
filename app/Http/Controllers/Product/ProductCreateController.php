@@ -19,7 +19,7 @@ class ProductCreateController extends Controller
     public function __construct(private readonly ProductService $productService) {}
 
     #[OA\Post(
-        path: '/api/seller/product',
+        path: '/api/marketplace/product',
         summary: 'Create a product',
         description: "Validation only runs when status is ACTIVE — any other status (DRAFT, ARCHIVED) skips validation and stores the payload as-is, matching backend-api's behavior.",
         security: [['sellerAuth' => []]],

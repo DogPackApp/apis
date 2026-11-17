@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Product\Gallery;
 use App\Models\Product\Item;
+use App\Models\Product\ItemMedia;
 use App\Models\Seller\Seller;
 use App\Models\Store\Policy;
 use App\Models\Store\Store;
@@ -24,8 +26,8 @@ function policySellerWithStore(): array
 }
 
 test('policy routes require authentication', function () {
-    $this->getJson('/api/seller/policy')->assertUnauthorized();
-    $this->postJson('/api/seller/policy', ['name' => 'Returns'])->assertUnauthorized();
+    $this->getJson('/api/marketplace/policy')->assertUnauthorized();
+    $this->postJson('/api/marketplace/policy', ['name' => 'Returns'])->assertUnauthorized();
 });
 
 test('the first policy is the default and completes store settings', function () {
@@ -37,7 +39,7 @@ test('the first policy is the default and completes store settings', function ()
         'policy_id' => null,
     ]);
 
-    $this->postJson('/api/seller/policy', [
+    $this->postJson('/api/marketplace/policy', [
         'name' => 'Standard',
         'is_return' => true,
         'time' => 14,
@@ -57,20 +59,20 @@ test('the first policy is the default and completes store settings', function ()
 test('a later policy stays non-default until it is toggled', function () {
     policySellerWithStore();
 
-    $this->postJson('/api/seller/policy', ['name' => 'First', 'time' => null])->assertCreated();
+    $this->postJson('/api/marketplace/policy', ['name' => 'First', 'time' => null])->assertCreated();
 
-    $second = $this->postJson('/api/seller/policy', [
+    $second = $this->postJson('/api/marketplace/policy', [
         'name' => 'Second',
         'time' => null,
     ])->assertCreated()
         ->assertJsonPath('data.is_default', 0)
         ->json('data.uuid');
 
-    $this->putJson('/api/seller/policy/'.$second.'/default')
+    $this->putJson('/api/marketplace/policy/'.$second.'/default')
         ->assertOk()
         ->assertExactJson([]);
 
-    $this->getJson('/api/seller/policy')
+    $this->getJson('/api/marketplace/policy')
         ->assertOk()
         ->assertJsonPath('data.0.is_default', 0)
         ->assertJsonPath('data.1.is_default', 1);
@@ -79,11 +81,11 @@ test('a later policy stays non-default until it is toggled', function () {
 test('policy create validates the name and return window', function () {
     policySellerWithStore();
 
-    $this->postJson('/api/seller/policy', [])
+    $this->postJson('/api/marketplace/policy', [])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['name']);
 
-    $this->postJson('/api/seller/policy', [
+    $this->postJson('/api/marketplace/policy', [
         'name' => 'Returns',
         'is_return' => true,
     ])->assertUnprocessable()
@@ -94,10 +96,10 @@ test('a store cannot have more than four policies', function () {
     policySellerWithStore();
 
     foreach (['One', 'Two', 'Three', 'Four'] as $name) {
-        $this->postJson('/api/seller/policy', ['name' => $name, 'time' => null])->assertCreated();
+        $this->postJson('/api/marketplace/policy', ['name' => $name, 'time' => null])->assertCreated();
     }
 
-    $this->postJson('/api/seller/policy', ['name' => 'Five', 'time' => null])
+    $this->postJson('/api/marketplace/policy', ['name' => 'Five', 'time' => null])
         ->assertUnprocessable()
         ->assertJsonPath('errors', 'Cannot Create More than 4 Policies');
 });
@@ -105,16 +107,16 @@ test('a store cannot have more than four policies', function () {
 test('seller can show and rename a policy', function () {
     policySellerWithStore();
 
-    $uuid = $this->postJson('/api/seller/policy', ['name' => 'Old', 'time' => null])
+    $uuid = $this->postJson('/api/marketplace/policy', ['name' => 'Old', 'time' => null])
         ->assertCreated()
         ->json('data.uuid');
 
-    $this->getJson('/api/seller/policy/'.$uuid)
+    $this->getJson('/api/marketplace/policy/'.$uuid)
         ->assertOk()
         ->assertJsonPath('data.name', 'Old')
         ->assertJsonPath('data.uuid', $uuid);
 
-    $this->putJson('/api/seller/policy/'.$uuid, ['name' => 'Renamed'])
+    $this->putJson('/api/marketplace/policy/'.$uuid, ['name' => 'Renamed'])
         ->assertOk()
         ->assertJsonPath('data.name', 'Renamed');
 });
@@ -122,14 +124,14 @@ test('seller can show and rename a policy', function () {
 test('the only default policy cannot be unset or deleted', function () {
     policySellerWithStore();
 
-    $uuid = $this->postJson('/api/seller/policy', ['name' => 'Only', 'time' => null])
+    $uuid = $this->postJson('/api/marketplace/policy', ['name' => 'Only', 'time' => null])
         ->json('data.uuid');
 
-    $this->putJson('/api/seller/policy/'.$uuid, ['is_default' => false])
+    $this->putJson('/api/marketplace/policy/'.$uuid, ['is_default' => false])
         ->assertUnprocessable()
         ->assertJsonPath('errors', 'You must have at least one default policy. Please set another default policy before removing this one.');
 
-    $this->deleteJson('/api/seller/policy/'.$uuid)
+    $this->deleteJson('/api/marketplace/policy/'.$uuid)
         ->assertUnprocessable()
         ->assertJsonPath('errors', 'Default policy cannot be deleted');
 });
@@ -137,21 +139,21 @@ test('the only default policy cannot be unset or deleted', function () {
 test('deleting a policy moves its items onto the default policy', function () {
     [, $store] = policySellerWithStore();
 
-    $default = $this->postJson('/api/seller/policy', ['name' => 'Default', 'time' => null])
+    $default = $this->postJson('/api/marketplace/policy', ['name' => 'Default', 'time' => null])
         ->json('data.uuid');
 
-    $other = $this->postJson('/api/seller/policy', ['name' => 'Other', 'time' => null])
+    $other = $this->postJson('/api/marketplace/policy', ['name' => 'Other', 'time' => null])
         ->json('data.uuid');
 
     $item = Item::factory()->create(['store_id' => $store->id]);
 
-    $this->postJson('/api/seller/policy/'.$other.'/items', [
+    $this->postJson('/api/marketplace/policy/'.$other.'/items', [
         'items' => [(string) $item->uuid],
     ])->assertNoContent();
 
     expect($item->fresh()->policy_id)->not->toBeNull();
 
-    $this->deleteJson('/api/seller/policy/'.$other)
+    $this->deleteJson('/api/marketplace/policy/'.$other)
         ->assertOk()
         ->assertJsonPath('message', 'Policy deleted successfully');
 
@@ -163,20 +165,39 @@ test('deleting a policy moves its items onto the default policy', function () {
 test('policy items return the product uuid', function () {
     [, $store] = policySellerWithStore();
 
-    $uuid = $this->postJson('/api/seller/policy', ['name' => 'With items', 'time' => null])
+    $uuid = $this->postJson('/api/marketplace/policy', ['name' => 'With items', 'time' => null])
         ->json('data.uuid');
 
-    $item = Item::factory()->create(['store_id' => $store->id, 'policy_id' => null]);
+    $item = Item::factory()->create([
+        'store_id' => $store->id,
+        'policy_id' => null,
+        'media_url' => 'uploads/products/cover.webp',
+    ]);
 
-    $this->postJson('/api/seller/policy/'.$uuid.'/items', [
+    $gallery = new Gallery;
+    $gallery->store_id = $store->id;
+    $gallery->url = 'uploads/products/cover.webp';
+    $gallery->type = 'image/webp';
+    $gallery->save();
+
+    ItemMedia::query()->create([
+        'item_id' => $item->id,
+        'gallery_id' => $gallery->id,
+        'order' => 0,
+    ]);
+
+    $this->postJson('/api/marketplace/policy/'.$uuid.'/items', [
         'items' => [(string) $item->uuid],
     ])->assertNoContent();
 
-    $this->getJson('/api/seller/policy/'.$uuid.'/items')
+    $response = $this->getJson('/api/marketplace/policy/'.$uuid.'/items')
         ->assertOk()
-        ->assertJsonPath('data.items.0.uuid', (string) $item->uuid)
-        ->assertJsonPath('data.items.0.tags', [])
-        ->assertJsonPath('data.items.0.medias', [])
-        ->assertJsonPath('data.items.0.sections', [])
-        ->assertJsonPath('data.items.0.itemVariants', []);
+        ->assertJsonPath('data.items.0.title', $item->title)
+        ->assertJsonPath('data.items.0.media_url', $gallery->url)
+        ->assertJsonPath('data.items.0.media.uuid', (string) $gallery->uuid)
+        ->assertJsonPath('data.items.0.media.url', $gallery->url)
+        ->assertJsonPath('data.items.0.media.type', 'image/webp');
+
+    expect(array_keys($response->json('data.items.0')))->toBe(['title', 'media_url', 'media'])
+        ->and(array_keys($response->json('data.items.0.media')))->toBe(['uuid', 'url', 'type', 'name', 'order']);
 });

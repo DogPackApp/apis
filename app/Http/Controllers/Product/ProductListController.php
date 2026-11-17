@@ -21,7 +21,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ProductListController extends Controller
 {
     #[OA\Get(
-        path: '/api/seller/product',
+        path: '/api/marketplace/product',
         summary: "List the authenticated seller's store's products",
         security: [['sellerAuth' => []]],
         tags: ['Product'],

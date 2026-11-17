@@ -26,7 +26,7 @@ The product itself. Nothing else in this doc means anything without this.
 
 **Unlocks**: `POST/GET/PUT /product`, `GET /product/{uuid}`, `PUT /product/{uuid}/archive` — all built. `PUT /product/bulk/move` (needs Section, Phase 2) and `GET /product/category` (category listing, deliberately deferred) are **not** part of this slice.
 
-Built as: `App\Models\Product\{Item,ItemPrice,Category}`, `App\Repository\Product\ProductRepository` + `App\Services\Product\ProductService`, `App\Http\Controllers\Product\*`, `App\Http\Requests\Product\ProductValidationRules`, `App\Http\Resources\Product\{ProductResource,ProductPriceResource,ProductCategoryResource}`, routes under `/api/seller/product/*`, tests in `tests/Feature/ProductTest.php`.
+Built as: `App\Models\Product\{Item,ItemPrice,Category}`, `App\Repository\Product\ProductRepository` + `App\Services\Product\ProductService`, `App\Http\Controllers\Product\*`, `App\Http\Requests\Product\ProductValidationRules`, `App\Http\Resources\Product\{ProductResource,ProductPriceResource,ProductCategoryResource}`, routes under `/api/marketplace/product/*`, tests in `tests/Feature/ProductTest.php`.
 
 ## Phase 2 — Organization — Decision: ❓
 

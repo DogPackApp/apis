@@ -19,9 +19,9 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerLoginController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/login',
+        path: '/api/marketplace/seller/login',
         summary: 'Log a seller in with email and password',
-        description: 'Returns an access token immediately, unless the seller has 2FA enabled — in that case an OTP is emailed and a 202 is returned instead, and the token is issued by POST /api/seller/login/otp.',
+        description: 'Returns an access token immediately, unless the seller has 2FA enabled — in that case an OTP is emailed and a 202 is returned instead, and the token is issued by POST /api/marketplace/seller/login/otp.',
         tags: ['Seller Auth'],
         requestBody: new OA\RequestBody(
             required: true,

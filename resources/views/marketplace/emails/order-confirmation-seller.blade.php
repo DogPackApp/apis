@@ -91,7 +91,7 @@
                                             @if($item->item_options)
                                                 <p style="margin: 4px 0 0 0; font-size: 13px; color: #555;">
                                                     @foreach($item->__attributeOptions($item->item_options) as $options)
-                                                        @if($options->attribute_value != \App\Models\Marketplace\ItemVariant::SHOPIFY_DEFAULT_VARIANT)
+                                                        @if($options->attribute_value != \App\Models\Product\ItemVariant::SHOPIFY_DEFAULT_VARIANT)
                                                             <span style="color: #666;">{{ $options->attribute->name }}: {{ $options->attribute_value }} 
                                                                 @if(!$loop->last)
                                                                     &nbsp;|&nbsp;

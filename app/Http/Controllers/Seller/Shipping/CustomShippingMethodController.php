@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Seller\Shipping;
 
 use App\Http\Controllers\Controller;
+use App\Models\Store\ShippingZone;
+use App\Models\Store\Store;
 use App\Services\Store\ShippingService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -33,6 +35,8 @@ class CustomShippingMethodController extends Controller
             );
 
             DB::commit();
+
+            ShippingZone::forgetListCache(resolve(Store::class)->id);
         } catch (Exception $e) {
             DB::rollBack();
 

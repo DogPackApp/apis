@@ -4,7 +4,7 @@ The seller shipping routes are a 1:1 port of `backend-api`. The items below are 
 
 ## Response and URL
 
-- Paths live under `/api/seller/shipping`, not `/api/marketplace/shipping`. The route list and payloads match.
+- Paths live under `/api/marketplace/shipping`. The route list and payloads match.
 - Country rows inside a zone use this app's `CountryResource`, which adds the same flag URL the country list already returns.
 - `ConvertTimeZone` converts `created_at` and `updated_at` to the bound store timezone.
 - `EasyPostService::createAddress()` uses the EasyPost PHP SDK. `ShippingPlacesController` catches the vendor `EasyPost\Exception\Api\InvalidRequestException`. Label buying stays with the orders module.

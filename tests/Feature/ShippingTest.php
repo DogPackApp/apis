@@ -3,7 +3,9 @@
 use App\Models\Misc\CountriesNew;
 use App\Models\Misc\Country;
 use App\Models\Seller\Seller;
+use App\Models\Store\Packaging;
 use App\Models\Store\ShippingRate;
+use App\Models\Store\ShippingZone;
 use App\Models\Store\Store;
 use App\Services\OnboardingService;
 use App\Services\Store\EasyPostService;
@@ -44,11 +46,72 @@ function shippingCountry(): Country
     return $country;
 }
 
+test('the shipping zone list stays cached until shipping is saved', function () {
+    [, $store] = shippingSellerWithStore();
+
+    $zone = new ShippingZone;
+    $zone->store_id = $store->id;
+    $zone->name = 'Domestic';
+    $zone->save();
+
+    $this->getJson('/api/marketplace/shipping/shipping')
+        ->assertOk()
+        ->assertJsonPath('data.0.name', 'Domestic');
+
+    ShippingZone::query()->whereKey($zone->id)->update(['name' => 'International']);
+
+    $this->getJson('/api/marketplace/shipping/shipping')
+        ->assertOk()
+        ->assertJsonPath('data.0.name', 'Domestic');
+
+    ShippingZone::forgetListCache($store->id);
+
+    $this->getJson('/api/marketplace/shipping/shipping')
+        ->assertOk()
+        ->assertJsonPath('data.0.name', 'International');
+});
+
+test('a store resolves its default packaging', function () {
+    [, $store] = shippingSellerWithStore();
+
+    $other = new Packaging;
+    $other->store_id = $store->id;
+    $other->name = 'Spare box';
+    $other->type = Packaging::PACKING_TYPE[Packaging::PACKING_TYPE_BOX];
+    $other->length = 4;
+    $other->width = 4;
+    $other->height = 4;
+    $other->unit = Packaging::PACKING_UNIT[Packaging::PACKING_UNIT_IN];
+    $other->empty_weight = 1;
+    $other->empty_unit = Packaging::PACKING_WEIGHT[Packaging::PACKING_WEIGHT_LB];
+    $other->is_default = false;
+    $other->save();
+
+    $default = new Packaging;
+    $default->store_id = $store->id;
+    $default->name = 'Mailer';
+    $default->type = Packaging::PACKING_TYPE[Packaging::PACKING_TYPE_BOX];
+    $default->length = 10;
+    $default->width = 8;
+    $default->height = 4;
+    $default->unit = Packaging::PACKING_UNIT[Packaging::PACKING_UNIT_IN];
+    $default->empty_weight = 1;
+    $default->empty_unit = Packaging::PACKING_WEIGHT[Packaging::PACKING_WEIGHT_LB];
+    $default->is_default = true;
+    $default->save();
+
+    $loaded = Store::query()->with('defaultPackaging')->find($store->id);
+
+    expect($loaded->defaultPackaging)->not->toBeNull()
+        ->and($loaded->defaultPackaging->is($default))->toBeTrue()
+        ->and($loaded->defaultPackaging->name)->toBe('Mailer');
+});
+
 test('shipping routes require authentication', function () {
-    $this->getJson('/api/seller/shipping/rates')->assertUnauthorized();
-    $this->postJson('/api/seller/shipping', [])->assertUnauthorized();
-    $this->getJson('/api/seller/shipping/shipping')->assertUnauthorized();
-    $this->getJson('/api/seller/shipping/packaging')->assertUnauthorized();
+    $this->getJson('/api/marketplace/shipping/rates')->assertUnauthorized();
+    $this->postJson('/api/marketplace/shipping', [])->assertUnauthorized();
+    $this->getJson('/api/marketplace/shipping/shipping')->assertUnauthorized();
+    $this->getJson('/api/marketplace/shipping/packaging')->assertUnauthorized();
 });
 
 test('seller sees global rates and can create a custom method', function () {
@@ -59,7 +122,7 @@ test('seller sees global rates and can create a custom method', function () {
     $global->description = 'Carrier ground';
     $global->save();
 
-    $created = $this->postJson('/api/seller/shipping/custom', [
+    $created = $this->postJson('/api/marketplace/shipping/custom', [
         'name' => 'Local drop off',
         'description' => 'Hand delivery',
     ])->assertCreated()
@@ -67,14 +130,14 @@ test('seller sees global rates and can create a custom method', function () {
         ->assertJsonPath('description', 'Hand delivery')
         ->json('uuid');
 
-    $this->putJson('/api/seller/shipping/custom/'.$created, [
+    $this->putJson('/api/marketplace/shipping/custom/'.$created, [
         'name' => 'Local pickup',
         'description' => 'Counter',
     ])->assertOk()
         ->assertJsonPath('uuid', $created)
         ->assertJsonPath('name', 'Local pickup');
 
-    $this->getJson('/api/seller/shipping/rates')
+    $this->getJson('/api/marketplace/shipping/rates')
         ->assertOk()
         ->assertJsonFragment(['name' => 'Ground'])
         ->assertJsonFragment(['name' => 'Local pickup']);
@@ -92,7 +155,7 @@ test('saving zones and packaging replaces the store shipping setup', function ()
     $rate->description = 'Carrier ground';
     $rate->save();
 
-    $this->postJson('/api/seller/shipping', [
+    $this->postJson('/api/marketplace/shipping', [
         'shipping' => [[
             'name' => 'Domestic',
             'country' => [$country->id],
@@ -120,7 +183,7 @@ test('saving zones and packaging replaces the store shipping setup', function ()
 
     expect((new OnboardingService)->fetchOnboardingStatus($seller)->is_shipping)->toBe(1);
 
-    $this->getJson('/api/seller/shipping/shipping')
+    $this->getJson('/api/marketplace/shipping/shipping')
         ->assertOk()
         ->assertJsonPath('data.0.name', 'Domestic')
         ->assertJsonPath('data.0.shipping_zone_country.0.country.name', 'United States')
@@ -128,7 +191,7 @@ test('saving zones and packaging replaces the store shipping setup', function ()
         ->assertJsonPath('data.0.shipping_zone_rates.0.condition_type', 'PRICE')
         ->assertJsonPath('data.0.shipping_zone_rates.0.shipping_rate.name', 'Ground');
 
-    $this->getJson('/api/seller/shipping/packaging')
+    $this->getJson('/api/marketplace/shipping/packaging')
         ->assertOk()
         ->assertJsonPath('data.0.name', 'Mailer')
         ->assertJsonPath('data.0.type', 'BOX')
@@ -149,7 +212,7 @@ test('address autocomplete returns the google payload', function () {
         ]),
     ]);
 
-    $this->postJson('/api/seller/shipping/address/autocomplete', [
+    $this->postJson('/api/marketplace/shipping/address/autocomplete', [
         'keyword' => '123 Main',
     ])->assertOk()
         ->assertJsonPath('status', 'OK')
@@ -183,7 +246,7 @@ test('places saves the google address and the easypost id', function () {
         $mock->shouldReceive('createAddress')->once()->andReturn($easypostAddress);
     });
 
-    $this->postJson('/api/seller/shipping/address/places', [
+    $this->postJson('/api/marketplace/shipping/address/places', [
         'place_id' => 'place-1',
     ])->assertOk()
         ->assertJsonPath('data.easypost_id', 'adr_123')

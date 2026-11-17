@@ -22,7 +22,7 @@ test('a wrong master password is rejected', function () {
     $seller = Seller::factory()->verified()->create();
     $store = Store::factory()->create(['seller_id' => $seller->id]);
 
-    $this->postJson('/api/seller/master-login', [
+    $this->postJson('/api/marketplace/seller/master-login', [
         'store_id' => $store->uuid,
         'password' => 'nope',
     ])->assertUnauthorized();
@@ -34,7 +34,7 @@ test('staff can enter a seller panel with the master password and otp', function
     $seller = Seller::factory()->verified()->create();
     $store = Store::factory()->create(['seller_id' => $seller->id]);
 
-    $this->postJson('/api/seller/master-login', [
+    $this->postJson('/api/marketplace/seller/master-login', [
         'store_id' => $store->uuid,
         'password' => 'staff-secret',
     ])->assertAccepted()
@@ -45,7 +45,7 @@ test('staff can enter a seller panel with the master password and otp', function
         return $mail->hasTo('staff@dogpackapp.com') && $mail->otp === '1234';
     });
 
-    $this->postJson('/api/seller/master-login/otp', [
+    $this->postJson('/api/marketplace/seller/master-login/otp', [
         'store_id' => $store->uuid,
         'otp' => '1234',
     ])->assertOk()

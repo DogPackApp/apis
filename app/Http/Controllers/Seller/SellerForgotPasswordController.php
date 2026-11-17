@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerForgotPasswordController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/password/forgot',
+        path: '/api/marketplace/seller/password/forgot',
         summary: 'Request a password reset link',
         description: 'Sends a reset link email via the sellers password broker (60-minute token expiry).',
         tags: ['Seller Auth'],

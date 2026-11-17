@@ -41,13 +41,13 @@ test('a seller can list reviews, reply, and report one', function () {
         'is_visible' => true,
     ]);
 
-    $this->getJson('/api/seller/store/reviews?orderBy=recent&type=all&rating=all&media=all')
+    $this->getJson('/api/marketplace/store/reviews?orderBy=recent&type=all&rating=all&media=all')
         ->assertOk()
         ->assertJsonPath('data.0.username', 'Ada')
         ->assertJsonPath('data.0.rating', 5)
         ->assertJsonPath('totalReviews', 1);
 
-    $this->postJson('/api/seller/reviews/'.$review->uuid.'/reply/', [
+    $this->postJson('/api/marketplace/reviews/'.$review->uuid.'/reply/', [
         'message' => 'Thank you',
     ])->assertOk();
 
@@ -58,11 +58,11 @@ test('a seller can list reviews, reply, and report one', function () {
     $reason->title = 'Spam';
     $reason->save();
 
-    $this->getJson('/api/seller/reviews/report/')
+    $this->getJson('/api/marketplace/reviews/report/')
         ->assertOk()
         ->assertJsonPath('data.0.title', 'Spam');
 
-    $this->postJson('/api/seller/reviews/'.$review->uuid.'/report/', [
+    $this->postJson('/api/marketplace/reviews/'.$review->uuid.'/report/', [
         'reason_id' => $reason->uuid,
     ])->assertOk();
 
@@ -93,30 +93,30 @@ test('a seller can list a chat, read it, report it, and unblock it', function ()
         'is_read' => 0,
     ]);
 
-    $this->getJson('/api/seller/chat/list')
+    $this->getJson('/api/marketplace/chat/list')
         ->assertOk()
         ->assertJsonPath('data.0.uuid', (string) $thread->uuid)
         ->assertJsonPath('data.0.unread_count', 1)
         ->assertJsonPath('data.0.customer.first_name', 'Ada');
 
-    $this->getJson('/api/seller/chat/unreadCount')
+    $this->getJson('/api/marketplace/chat/unreadCount')
         ->assertOk()
         ->assertJsonPath('total_unread_count', 1);
 
-    $this->getJson('/api/seller/chat/list/'.$thread->uuid)
+    $this->getJson('/api/marketplace/chat/list/'.$thread->uuid)
         ->assertOk()
         ->assertJsonPath('data.0.message', 'Is this in stock?');
 
     expect(Chat::query()->first()->is_read)->toBe(1);
 
-    $this->postJson('/api/seller/chat/report/'.$thread->uuid, [
+    $this->postJson('/api/marketplace/chat/report/'.$thread->uuid, [
         'reason' => 'Harassment',
     ])->assertCreated();
 
     expect($thread->fresh()->is_active)->toBeFalsy();
     expect(SellerChatReport::query()->where('thread_uuid', $thread->uuid)->exists())->toBeTrue();
 
-    $this->putJson('/api/seller/chat/unblock/'.$thread->uuid)
+    $this->putJson('/api/marketplace/chat/unblock/'.$thread->uuid)
         ->assertOk();
 
     expect($thread->fresh()->is_active)->toBeTruthy();
@@ -128,7 +128,7 @@ test('a chat email to the seller is sent without a seller token', function () {
     $seller = Seller::factory()->verified()->create();
     $store = Store::factory()->create(['seller_id' => $seller->id]);
 
-    $this->postJson('/api/seller/seller/chat/email', [
+    $this->postJson('/api/marketplace/seller/chat/email', [
         'receiverType' => 'seller',
         'message' => [
             'sellerUUID' => $store->uuid,

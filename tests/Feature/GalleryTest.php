@@ -23,7 +23,7 @@ function gallerySeller(): array
 }
 
 test('gallery list requires authentication', function () {
-    $this->postJson('/api/seller/store/gallery')->assertUnauthorized();
+    $this->postJson('/api/marketplace/store/gallery')->assertUnauthorized();
 });
 
 test('a seller can list and search their gallery', function () {
@@ -44,7 +44,7 @@ test('a seller can list and search their gallery', function () {
     $otherImage->type = Gallery::TYPE_IMAGE;
     $otherImage->save();
 
-    $this->postJson('/api/seller/store/gallery', ['search' => 'Chew'])
+    $this->postJson('/api/marketplace/store/gallery', ['search' => 'Chew'])
         ->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.uuid', (string) $named->uuid)
@@ -67,7 +67,7 @@ test('presigned product upload creates gallery rows', function () {
             }
         });
 
-    $response = $this->postJson('/api/seller/aws/presigned', [
+    $response = $this->postJson('/api/marketplace/aws/presigned', [
         'count' => 1,
         'module' => 'product',
         'data' => [
@@ -99,7 +99,7 @@ test('presigned store upload saves the profile image path', function () {
             }
         });
 
-    $this->postJson('/api/seller/aws/presigned', [
+    $this->postJson('/api/marketplace/aws/presigned', [
         'count' => 1,
         'module' => 'store',
         'type' => 'profile',

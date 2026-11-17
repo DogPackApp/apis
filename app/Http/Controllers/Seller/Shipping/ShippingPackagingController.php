@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Seller\Shipping;
 use App\Http\Controllers\Controller;
 use App\Models\Product\Item;
 use App\Models\Store\Packaging;
+use App\Models\Store\ShippingZone;
 use App\Models\Store\ShippingZoneRate;
 use App\Services\Cache\CacheService;
 use App\Services\OnboardingService;
@@ -135,6 +136,8 @@ class ShippingPackagingController extends Controller
             (new OnboardingService)->completeShipping(auth()->user());
 
             DB::commit();
+
+            ShippingZone::forgetListCache(auth()->user()->store->id);
         } catch (Exception $e) {
             DB::rollBack();
 

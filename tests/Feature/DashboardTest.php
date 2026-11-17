@@ -62,20 +62,20 @@ test('the seller dashboard reports purchases, sales, reviews, and unfulfilled or
         'is_visible' => true,
     ]);
 
-    $this->getJson('/api/seller/dashboard/purchases')
+    $this->getJson('/api/marketplace/dashboard/purchases')
         ->assertOk()
         ->assertJsonPath('orders', 1);
 
-    $this->getJson('/api/seller/dashboard/sales')
+    $this->getJson('/api/marketplace/dashboard/sales')
         ->assertOk()
         ->assertJsonPath('sales', 25);
 
-    $this->getJson('/api/seller/dashboard/reviews')
+    $this->getJson('/api/marketplace/dashboard/reviews')
         ->assertOk()
         ->assertJsonPath('0.totalReviews', 1)
         ->assertJsonPath('0.totalAvg', 4);
 
-    $this->getJson('/api/seller/dashboard/unfulfilled')
+    $this->getJson('/api/marketplace/dashboard/unfulfilled')
         ->assertOk()
         ->assertJsonPath('data.0.customer', 'Ada Buyer')
         ->assertJsonPath('data.0.order_no', '1001')
@@ -100,7 +100,7 @@ test('total sales sums fulfilled orders from the last six months', function () {
         'total' => 2500,
     ]);
 
-    $this->getJson('/api/seller/analytics/totalSales')
+    $this->getJson('/api/marketplace/analytics/totalSales')
         ->assertOk()
         ->assertJsonPath('total_sales', 25)
         ->assertJsonPath('sales.0.month', now()->format('M'))

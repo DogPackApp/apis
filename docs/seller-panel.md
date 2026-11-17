@@ -16,7 +16,7 @@ Status values: `Not started` · `Partial` · `Done` · `Not moving` · `Out`
 | Not moving | 1 | 12 |
 | **In scope** | **17** | **129** |
 
-Routes already in this app live under `/api/seller/*` and `/api/misc/*`. `backend-api` serves the same seller panel under `/api/marketplace/*`.
+Seller panel routes use the same `/api/marketplace/*` paths as `backend-api`, including `/api/marketplace/seller/login` and `/api/marketplace/misc/*`.
 
 ## Modules
 

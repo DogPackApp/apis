@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources\Store;
 
-use App\Http\Resources\Product\ProductResource;
+use App\Models\Product\Item;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,7 +22,21 @@ class PolicyResource extends JsonResource
             'time' => $this->time,
             'items_count' => $this->items_count,
             'custom_text' => $this->custom_text,
-            'items' => ProductResource::collection($this->whenLoaded('items')),
+            'items' => $this->whenLoaded('items', fn () => $this->items->map(function (Item $item): array {
+                $media = $item->relationLoaded('media') ? $item->media : null;
+
+                return [
+                    'title' => $item->title,
+                    'media_url' => $media?->url,
+                    'media' => $media === null ? null : [
+                        'uuid' => $media->uuid,
+                        'url' => $media->url,
+                        'type' => $media->type,
+                        'name' => $media->name,
+                        'order' => $media->pivot?->order ?? $media->order ?? null,
+                    ],
+                ];
+            })->values()),
         ];
     }
 }

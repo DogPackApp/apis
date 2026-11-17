@@ -2,7 +2,7 @@
 
 The seller gallery list and the S3 upload URL are in this app. The items below were not copied as-is.
 
-- `POST /api/seller/store/gallery` lists the authenticated seller's gallery. `POST /api/seller/aws/presigned` creates the upload URLs.
+- `POST /api/marketplace/store/gallery` lists the authenticated seller's gallery. `POST /api/marketplace/aws/presigned` creates the upload URLs.
 - Product uploads insert `galleries` rows before the file is uploaded. The product create request can then send those uuids in `about.images`.
 - `league/flysystem-aws-s3-v3` is installed. A real upload URL uses `MP_AWS_KEY`, `MP_AWS_SECRET`, `MP_AWS_REGION`, `MP_AWS_BUCKET`, and `MP_AWS_PATH`. Tests stand in for the disk.
 - A missing `data` array on a product upload throws before the `Exception` catch, because `foreach` on null is an `Error`.

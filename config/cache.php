@@ -126,11 +126,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | This value determines the classes that can be unserialized from cache
-    | storage. By default, no PHP classes will be unserialized from your
-    | cache to prevent gadget chain attacks if your APP_KEY is leaked.
+    | storage. Seller-panel caches store Eloquent models, so those objects
+    | have to be restored on read. true allows every class.
     |
     */
 
-    'serializable_classes' => false,
+    'serializable_classes' => true,
 
 ];

@@ -209,7 +209,7 @@
                                     @if($item->item_options)
                                         @foreach($item->__attributeOptions($item->item_options) as $options)
                                             <div class="product-details">
-                                                @if($options->attribute_value != \App\Models\Marketplace\ItemVariant::SHOPIFY_DEFAULT_VARIANT)
+                                                @if($options->attribute_value != \App\Models\Product\ItemVariant::SHOPIFY_DEFAULT_VARIANT)
                                                     {{ $options->attribute->name }} {{ $options->attribute_value }}
                                                 @endif
                                         </div>
@@ -218,7 +218,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td>{{ array_search($item->product->type, \App\Models\Marketplace\Item::TYPES) }}</td>
+                        <td>{{ array_search($item->product->type, \App\Models\Product\Item::TYPES) }}</td>
                         <td style="text-align: center">{{ $item->quantity ? $item->quantity - $item->refunded : "1" }}</td>
                     </tr>
                 @endif

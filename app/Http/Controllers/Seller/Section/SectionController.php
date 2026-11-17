@@ -18,9 +18,7 @@ class SectionController extends Controller
     public function __invoke(Request $request, Store $store): AnonymousResourceCollection|JsonResponse
     {
         try {
-            $cacheKey = "store_sections_{$store->id}";
-
-            $sections = Cache::rememberForever($cacheKey, function () use ($store) {
+            $sections = Cache::rememberForever("store_sections_{$store->id}.apis", function () use ($store) {
                 return Section::query()
                     ->withCount(['items'])
                     ->where('store_id', $store->id)

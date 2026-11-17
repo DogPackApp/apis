@@ -82,21 +82,21 @@ function activeProductPayload(Category $category, array $overrides = []): array
 }
 
 test('product create requires authentication', function () {
-    $this->postJson('/api/seller/product')->assertUnauthorized();
+    $this->postJson('/api/marketplace/product')->assertUnauthorized();
 });
 
 test('product create returns not found when seller has no store', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/product', ['status' => 'DRAFT'])->assertNotFound();
+    $this->postJson('/api/marketplace/product', ['status' => 'DRAFT'])->assertNotFound();
 });
 
 test('seller can create an ACTIVE product with full validation', function () {
     [$seller, $store] = actingSeller();
     $category = makeCategory();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category))
+    $this->postJson('/api/marketplace/product', activeProductPayload($category))
         ->assertCreated();
 
     $item = Item::query()->where('store_id', $store->id)->firstOrFail();
@@ -118,7 +118,7 @@ test('seller can create an ACTIVE product with full validation', function () {
 test('creating an ACTIVE product without required fields fails validation', function () {
     [, $store] = actingSeller();
 
-    $this->postJson('/api/seller/product', ['status' => 'ACTIVE'])
+    $this->postJson('/api/marketplace/product', ['status' => 'ACTIVE'])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['about.title', 'about.type', 'about.description', 'about.origin', 'category_tags.category']);
 });
@@ -130,7 +130,7 @@ test('creating a DRAFT product skips validation entirely', function () {
     // is_global_pricing is a non-boolean string here, which the ACTIVE rules
     // (`required|boolean`) would reject — proves no validation runs at all
     // when status isn't ACTIVE, since the create still succeeds.
-    $this->postJson('/api/seller/product', [
+    $this->postJson('/api/marketplace/product', [
         'status' => 'DRAFT',
         'about' => [
             'title' => 'Draft Toy',
@@ -157,7 +157,7 @@ test('creating a digital product nulls out stock quantity and weight', function 
     actingSeller();
     $category = makeCategory();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category, [
+    $this->postJson('/api/marketplace/product', activeProductPayload($category, [
         'about' => ['type' => 'DIGITAL'],
     ]))->assertCreated();
 
@@ -170,7 +170,7 @@ test('creating a digital product nulls out stock quantity and weight', function 
 test('product create returns 422 when the fallback category id does not exist', function () {
     actingSeller();
 
-    $this->postJson('/api/seller/product', [
+    $this->postJson('/api/marketplace/product', [
         'status' => 'DRAFT',
         'about' => [
             'title' => 'No Category',
@@ -190,7 +190,7 @@ test('seller can list only their own store products', function () {
     Item::factory()->for($store)->create(['title' => 'Mine']);
     Item::factory()->for($otherStore)->create(['title' => 'Not Mine']);
 
-    $response = $this->getJson('/api/seller/product')->assertOk();
+    $response = $this->getJson('/api/marketplace/product')->assertOk();
 
     $titles = collect($response->json('data'))->pluck('title');
     expect($titles)->toContain('Mine')->not->toContain('Not Mine');
@@ -202,10 +202,10 @@ test('product list filters by status and type', function () {
     Item::factory()->for($store)->create(['title' => 'Active Physical', 'status' => Item::STATUS[Item::STATUS_ACTIVE], 'type' => Item::TYPES[Item::TYPE_PHYSICAL]]);
     Item::factory()->for($store)->create(['title' => 'Draft Digital', 'status' => Item::STATUS[Item::STATUS_DRAFT], 'type' => Item::TYPES[Item::TYPE_DIGITAL]]);
 
-    $response = $this->getJson('/api/seller/product?status=ACTIVE')->assertOk();
+    $response = $this->getJson('/api/marketplace/product?status=ACTIVE')->assertOk();
     expect(collect($response->json('data'))->pluck('title')->values()->all())->toBe(['Active Physical']);
 
-    $response = $this->getJson('/api/seller/product?type=DIGITAL')->assertOk();
+    $response = $this->getJson('/api/marketplace/product?type=DIGITAL')->assertOk();
     expect(collect($response->json('data'))->pluck('title')->values()->all())->toBe(['Draft Digital']);
 });
 
@@ -235,7 +235,7 @@ test('product list counts active subscriptions', function () {
     MarketplaceSubscription::query()->create($subscription);
     MarketplaceSubscription::query()->create([...$subscription, 'status' => MarketplaceSubscription::STATUS_CANCELLED]);
 
-    $this->getJson('/api/seller/product')
+    $this->getJson('/api/marketplace/product')
         ->assertOk()
         ->assertJsonPath('data.0.active_subscriptions_count', 1);
 });
@@ -244,7 +244,7 @@ test('variant inventory counts the variant stock', function () {
     actingSeller();
     $category = makeCategory();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category, [
+    $this->postJson('/api/marketplace/product', activeProductPayload($category, [
         'about' => ['title' => 'Variant Toy'],
         'item_variations' => [
             'variants' => [
@@ -275,7 +275,7 @@ test('variant inventory counts the variant stock', function () {
         ],
     ]))->assertCreated();
 
-    $this->getJson('/api/seller/product')
+    $this->getJson('/api/marketplace/product')
         ->assertOk()
         ->assertJsonPath('data.0.inventory', '4 in stock for 2 variants')
         ->assertJsonPath('data.0.vary_by.quantity', 1);
@@ -283,7 +283,7 @@ test('variant inventory counts the variant stock', function () {
     $item = Item::query()->where('title', 'Variant Toy')->first();
     $small = $item->itemVariants()->where('sku', 'SMALL')->first();
 
-    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+    $this->putJson('/api/marketplace/product/'.$item->uuid, activeProductPayload($category, [
         'about' => ['title' => 'Variant Toy', 'is_description_edited' => false],
         'item_variations' => [
             'variants' => [
@@ -312,7 +312,7 @@ test('variant inventory counts the variant stock', function () {
         ->and($small->fresh()->domestic_price)->toBe(900)
         ->and($small->fresh()->stock_quantity)->toBe(4);
 
-    $this->getJson('/api/seller/product')
+    $this->getJson('/api/marketplace/product')
         ->assertOk()
         ->assertJsonPath('data.0.inventory', '5 in Stock')
         ->assertJsonPath('data.0.vary_by.quantity', 0);
@@ -325,7 +325,7 @@ test('product list loads stock and ownership for the page in one query each', fu
     DB::flushQueryLog();
     DB::enableQueryLog();
 
-    $this->getJson('/api/seller/product')->assertOk();
+    $this->getJson('/api/marketplace/product')->assertOk();
 
     $queries = collect(DB::getQueryLog())->pluck('query');
 
@@ -338,7 +338,7 @@ test('seller can show a single product', function () {
     [, $store] = actingSeller();
     $item = Item::factory()->for($store)->create();
 
-    $this->getJson("/api/seller/product/{$item->uuid}")
+    $this->getJson("/api/marketplace/product/{$item->uuid}")
         ->assertOk()
         ->assertJsonPath('data.uuid', $item->uuid);
 });
@@ -348,7 +348,7 @@ test('show returns 404 for another store product', function () {
     $otherStore = Store::factory()->create();
     $item = Item::factory()->for($otherStore)->create();
 
-    $this->getJson("/api/seller/product/{$item->uuid}")->assertNotFound();
+    $this->getJson("/api/marketplace/product/{$item->uuid}")->assertNotFound();
 });
 
 test('seller can update a product with ACTIVE validation', function () {
@@ -360,7 +360,7 @@ test('seller can update a product with ACTIVE validation', function () {
         'about' => ['title' => 'Updated Title', 'is_description_edited' => false],
     ]);
 
-    $this->putJson("/api/seller/product/{$item->uuid}", $payload)->assertOk();
+    $this->putJson("/api/marketplace/product/{$item->uuid}", $payload)->assertOk();
 
     expect($item->refresh()->title)->toBe('Updated Title');
 });
@@ -370,7 +370,7 @@ test('updating with non-ACTIVE status skips validation', function () {
     $category = makeCategory();
     $item = Item::factory()->for($store)->create();
 
-    $this->putJson("/api/seller/product/{$item->uuid}", [
+    $this->putJson("/api/marketplace/product/{$item->uuid}", [
         'status' => 'DRAFT',
         'about' => ['title' => 'Draft Update', 'type' => 'PHYSICAL', 'description' => 'x', 'origin' => 'US'],
         'price_inventory' => ['is_global_pricing' => false, 'domestic_price' => 1, 'global_price' => null, 'stock_quantity' => 1, 'weight' => 1],
@@ -385,17 +385,17 @@ test('update returns 404 for another store product', function () {
     $otherStore = Store::factory()->create();
     $item = Item::factory()->for($otherStore)->create();
 
-    $this->putJson("/api/seller/product/{$item->uuid}", ['status' => 'DRAFT'])->assertNotFound();
+    $this->putJson("/api/marketplace/product/{$item->uuid}", ['status' => 'DRAFT'])->assertNotFound();
 });
 
 test('archive toggle cycles active to archived to draft', function () {
     [, $store] = actingSeller();
     $item = Item::factory()->for($store)->create(['status' => Item::STATUS[Item::STATUS_ACTIVE]]);
 
-    $this->putJson("/api/seller/product/{$item->uuid}/archive")->assertOk();
+    $this->putJson("/api/marketplace/product/{$item->uuid}/archive")->assertOk();
     expect($item->refresh()->status)->toBe(Item::STATUS[Item::STATUS_ARCHIVED]);
 
-    $this->putJson("/api/seller/product/{$item->uuid}/archive")->assertOk();
+    $this->putJson("/api/marketplace/product/{$item->uuid}/archive")->assertOk();
     expect($item->refresh()->status)->toBe(Item::STATUS[Item::STATUS_DRAFT]);
 });
 
@@ -404,7 +404,7 @@ test('archive toggle returns 404 for another store product', function () {
     $otherStore = Store::factory()->create();
     $item = Item::factory()->for($otherStore)->create();
 
-    $this->putJson("/api/seller/product/{$item->uuid}/archive")->assertNotFound();
+    $this->putJson("/api/marketplace/product/{$item->uuid}/archive")->assertNotFound();
 });
 
 test('creating a product stores the selected policy', function () {
@@ -415,7 +415,7 @@ test('creating a product stores the selected policy', function () {
     $policy->name = 'Standard';
     $policy->save();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category, [
+    $this->postJson('/api/marketplace/product', activeProductPayload($category, [
         'policy' => (string) $policy->uuid,
     ]))->assertCreated();
 
@@ -433,7 +433,7 @@ test('creating a product attaches tags and sections', function () {
     $section->order = 1;
     $section->save();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category, [
+    $this->postJson('/api/marketplace/product', activeProductPayload($category, [
         'category_tags' => [
             'category' => $category->uuid,
             'tags' => ['Chew', 'Outdoor'],
@@ -446,7 +446,7 @@ test('creating a product attaches tags and sections', function () {
     expect($item->tags()->pluck('name')->sort()->values()->all())->toBe(['Chew', 'Outdoor'])
         ->and($item->sections()->pluck('slug')->sort()->values()->all())->toBe(['all', 'toys']);
 
-    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+    $this->putJson('/api/marketplace/product/'.$item->uuid, activeProductPayload($category, [
         'about' => ['is_description_edited' => false],
         'category_tags' => [
             'category' => $category->uuid,
@@ -466,7 +466,7 @@ test('bulk move sends invalid products back and drafts the rest', function () {
     $valid->is_valid = 1;
     $valid->save();
 
-    $this->putJson('/api/seller/product/bulk/move', [
+    $this->putJson('/api/marketplace/product/bulk/move', [
         'products' => [(string) $invalid->uuid, (string) $valid->uuid],
         'status' => 'ACTIVE',
     ])->assertUnprocessable()
@@ -474,7 +474,7 @@ test('bulk move sends invalid products back and drafts the rest', function () {
 
     expect($valid->refresh()->status)->toBe(Item::STATUS[Item::STATUS_ACTIVE]);
 
-    $this->putJson('/api/seller/product/bulk/move', [
+    $this->putJson('/api/marketplace/product/bulk/move', [
         'products' => [(string) $valid->uuid],
         'status' => 'DRAFT',
     ])->assertNoContent();
@@ -498,7 +498,7 @@ test('seller category list includes the full path', function () {
         'is_active' => true,
     ]);
 
-    $this->getJson('/api/seller/product/category')
+    $this->getJson('/api/marketplace/product/category')
         ->assertOk()
         ->assertJsonFragment([
             'full_path' => 'Dog supplies > Toys',
@@ -529,7 +529,7 @@ test('category facets include the parent facet', function () {
         'is_active' => true,
     ]);
 
-    $this->getJson('/api/seller/product/category/'.$child->uuid.'/facets')
+    $this->getJson('/api/marketplace/product/category/'.$child->uuid.'/facets')
         ->assertOk()
         ->assertJsonPath('data.0.title', 'Material')
         ->assertJsonPath('data.0.values.0.name', 'Rubber');
@@ -563,7 +563,7 @@ test('a non english category list uses the translation table', function () {
     ]);
 
     $this->withHeader('X-localization', 'es')
-        ->getJson('/api/seller/product/category')
+        ->getJson('/api/marketplace/product/category')
         ->assertOk()
         ->assertJsonFragment(['name' => 'Juguetes', 'full_path' => 'Suministros > Juguetes']);
 });
@@ -598,7 +598,7 @@ test('category facets use a stored translation before google', function () {
     Http::fake();
 
     $this->withHeader('X-localization', 'fr')
-        ->getJson('/api/seller/product/category/'.$category->uuid.'/facets')
+        ->getJson('/api/marketplace/product/category/'.$category->uuid.'/facets')
         ->assertOk()
         ->assertJsonPath('data.0.title', 'Matiere')
         ->assertJsonPath('data.0.values.0.name', 'Caoutchouc');
@@ -634,7 +634,7 @@ test('category facets ask google when a translation is missing', function () {
     ]);
 
     $this->withHeader('X-localization', 'fr')
-        ->getJson('/api/seller/product/category/'.$category->uuid.'/facets')
+        ->getJson('/api/marketplace/product/category/'.$category->uuid.'/facets')
         ->assertOk()
         ->assertJsonPath('data.0.title', 'Materiau')
         ->assertJsonPath('data.0.values.0.name', 'Caoutchouc');
@@ -660,7 +660,7 @@ test('ai description returns the model text', function () {
         ]),
     ]);
 
-    $this->postJson('/api/seller/product/generate-description', [
+    $this->postJson('/api/marketplace/product/generate-description', [
         'description' => 'Rubber toy',
         'product_name' => 'Chew Toy',
     ])->assertOk()
@@ -682,7 +682,7 @@ test('category recognition returns the matched category uuid', function () {
         ]),
     ]);
 
-    $this->postJson('/api/seller/product/recognize-category', [
+    $this->postJson('/api/marketplace/product/recognize-category', [
         'product_name' => 'Chew Toy',
         'description' => 'A rubber toy',
         'product_type' => 'PHYSICAL',
@@ -696,7 +696,7 @@ test('csv export queues a batch', function () {
     $item = Item::factory()->for($store)->create();
     Bus::fake();
 
-    $this->postJson('/api/seller/product/export-csv', [
+    $this->postJson('/api/marketplace/product/export-csv', [
         'products' => [(string) $item->uuid],
         'status' => 'DRAFT',
     ])->assertOk()
@@ -757,7 +757,7 @@ test('creating a product stores variants and uses the lowest price', function ()
     [, $store] = actingSeller();
     $category = makeCategory();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category, [
+    $this->postJson('/api/marketplace/product', activeProductPayload($category, [
         'item_variations' => [
             'variants' => [
                 ['name' => 'Size', 'options' => ['Small', 'Medium']],
@@ -796,7 +796,7 @@ test('creating a product stores variants and uses the lowest price', function ()
         ->and($small->attributeOptions()->pluck('attribute_value')->all())->toBe(['Small'])
         ->and($item->varyBy->price)->toBe(1);
 
-    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+    $this->putJson('/api/marketplace/product/'.$item->uuid, activeProductPayload($category, [
         'about' => ['is_description_edited' => false],
         'item_variations' => [
             'variants' => [
@@ -833,7 +833,7 @@ test('updating a product stores a discount and customization', function () {
     [, $store] = actingSeller();
     $category = makeCategory();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category, [
+    $this->postJson('/api/marketplace/product', activeProductPayload($category, [
         'about' => [
             'customizations' => [
                 'enabled' => true,
@@ -852,7 +852,7 @@ test('updating a product stores a discount and customization', function () {
         ->and($item->customization->limit)->toBe(20)
         ->and($item->discount)->toBeNull();
 
-    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+    $this->putJson('/api/marketplace/product/'.$item->uuid, activeProductPayload($category, [
         'about' => [
             'is_description_edited' => false,
             'customizations' => [
@@ -875,7 +875,7 @@ test('updating a product stores a discount and customization', function () {
         ->and($item->discount->value)->toBe(1500)
         ->and($item->discount->start_date)->toBeNull();
 
-    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+    $this->putJson('/api/marketplace/product/'.$item->uuid, activeProductPayload($category, [
         'about' => ['is_description_edited' => false],
     ]))->assertOk();
 
@@ -889,7 +889,7 @@ test('creating a product stores the price and variant gtin', function () {
     [, $store] = actingSeller();
     $category = makeCategory();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category, [
+    $this->postJson('/api/marketplace/product', activeProductPayload($category, [
         'price_inventory' => ['gtin' => '012345678905'],
         'item_variations' => [
             'variants' => [
@@ -918,7 +918,7 @@ test('creating a product stores the price and variant gtin', function () {
     expect($item->price->gtin)->toBe('012345678905')
         ->and($item->variants()->first()->gtin)->toBe('012345678912');
 
-    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+    $this->putJson('/api/marketplace/product/'.$item->uuid, activeProductPayload($category, [
         'about' => ['is_description_edited' => false],
         'price_inventory' => ['gtin' => '099999999999'],
     ]))->assertOk();
@@ -940,7 +940,7 @@ test('creating a product attaches gallery images in order', function () {
     $extra->type = Gallery::TYPE_IMAGE;
     $extra->save();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category, [
+    $this->postJson('/api/marketplace/product', activeProductPayload($category, [
         'about' => [
             'images' => [(string) $cover->uuid, (string) $extra->uuid],
         ],
@@ -952,7 +952,7 @@ test('creating a product attaches gallery images in order', function () {
         ->and(ItemMedia::query()->where('item_id', $item->id)->orderBy('order')->pluck('gallery_id')->all())
         ->toBe([$cover->id, $extra->id]);
 
-    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+    $this->putJson('/api/marketplace/product/'.$item->uuid, activeProductPayload($category, [
         'about' => [
             'is_description_edited' => false,
             'images' => [(string) $extra->uuid],
@@ -983,7 +983,7 @@ test('product show and list return the saved product details', function () {
     $image->type = Gallery::TYPE_IMAGE;
     $image->save();
 
-    $this->postJson('/api/seller/product', activeProductPayload($category, [
+    $this->postJson('/api/marketplace/product', activeProductPayload($category, [
         'about' => ['images' => [(string) $image->uuid]],
         'category_tags' => [
             'category' => $category->uuid,
@@ -1014,7 +1014,7 @@ test('product show and list return the saved product details', function () {
 
     $item = Item::query()->where('store_id', $store->id)->first();
 
-    $this->putJson('/api/seller/product/'.$item->uuid, activeProductPayload($category, [
+    $this->putJson('/api/marketplace/product/'.$item->uuid, activeProductPayload($category, [
         'about' => ['is_description_edited' => false],
         'category_tags' => [
             'category' => $category->uuid,
@@ -1025,7 +1025,7 @@ test('product show and list return the saved product details', function () {
         'discount' => ['value' => 15, 'is_limited' => true],
     ]))->assertOk();
 
-    $show = $this->getJson('/api/seller/product/'.$item->uuid)->assertOk();
+    $show = $this->getJson('/api/marketplace/product/'.$item->uuid)->assertOk();
 
     $show->assertJsonPath('data.prices.gtin', '012345678905')
         ->assertJsonPath('data.tags.0.name', 'Chew')
@@ -1045,7 +1045,7 @@ test('product show and list return the saved product details', function () {
         ->assertJsonPath('data.discount.value', 15)
         ->assertJsonMissingPath('data.media');
 
-    $this->getJson('/api/seller/product')
+    $this->getJson('/api/marketplace/product')
         ->assertOk()
         ->assertJsonPath('data.0.uuid', (string) $item->uuid)
         ->assertJsonPath('data.0.media.name', 'Cover')
@@ -1082,12 +1082,12 @@ test('product show and list return active item facets', function () {
     ]);
     $item->activeFacets()->attach([$active->id, $inactive->id]);
 
-    $this->getJson('/api/seller/product/'.$item->uuid)
+    $this->getJson('/api/marketplace/product/'.$item->uuid)
         ->assertOk()
         ->assertJsonPath('data.facets.0.name', 'Rubber')
         ->assertJsonCount(1, 'data.facets');
 
-    $this->getJson('/api/seller/product')
+    $this->getJson('/api/marketplace/product')
         ->assertOk()
         ->assertJsonPath('data.0.uuid', (string) $item->uuid)
         ->assertJsonMissingPath('data.0.facets');

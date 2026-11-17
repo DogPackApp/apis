@@ -45,18 +45,18 @@ test('a seller can list plans, prices, the current plan, and invoices', function
         'status' => true,
     ]);
 
-    $this->getJson('/api/seller/subscribe/plans')
+    $this->getJson('/api/marketplace/subscribe/plans')
         ->assertOk()
         ->assertJsonPath('message', 'Plans fetched successfully')
         ->assertJsonPath('data.0.plan_id', 'prod_monthly')
         ->assertJsonPath('data.0.prices.CA.price_id', 'price_monthly_ca');
 
-    $this->getJson('/api/seller/subscribe/pricings')
+    $this->getJson('/api/marketplace/subscribe/pricings')
         ->assertOk()
         ->assertJsonPath('data.0.name', 'Monthly')
         ->assertJsonPath('data.0.stripe_id', 'price_monthly_ca');
 
-    $this->getJson('/api/seller/subscribe/currentPlan')
+    $this->getJson('/api/marketplace/subscribe/currentPlan')
         ->assertNotFound()
         ->assertJsonPath('errors', 'No active subscription found');
 
@@ -78,16 +78,16 @@ test('a seller can list plans, prices, the current plan, and invoices', function
         'status' => StorePayment::STATUS_PAID,
     ]);
 
-    $this->getJson('/api/seller/subscribe/currentPlan')
+    $this->getJson('/api/marketplace/subscribe/currentPlan')
         ->assertOk()
         ->assertJsonPath('data.current_plan.plan_type', 'monthly')
         ->assertJsonPath('data.subscription.stripe_subscription_id', 'sub_test');
 
-    $this->postJson('/api/seller/subscribe/list')
+    $this->postJson('/api/marketplace/subscribe/list')
         ->assertOk()
         ->assertJsonPath('data.0.stripe_invoice_id', 'in_test');
 
-    $this->getJson('/api/seller/subscribe/invoicePdf?invoice_id=missing')
+    $this->getJson('/api/marketplace/subscribe/invoicePdf?invoice_id=missing')
         ->assertNotFound()
         ->assertJsonPath('errors', 'Invoice not found');
 });
@@ -105,38 +105,38 @@ test('billing actions that do not call stripe stay local', function () {
     ]);
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/subscribe/getCards')
+    $this->postJson('/api/marketplace/subscribe/getCards')
         ->assertBadRequest()
         ->assertJsonPath('errors', "You haven't subscribe to any plan yet!");
 
-    $this->postJson('/api/seller/subscribe/addCard', [])
+    $this->postJson('/api/marketplace/subscribe/addCard', [])
         ->assertUnprocessable();
 
-    $this->postJson('/api/seller/subscribe/updateDefault', [])
+    $this->postJson('/api/marketplace/subscribe/updateDefault', [])
         ->assertUnprocessable();
 
-    $this->postJson('/api/seller/subscribe/deleteCard', [])
+    $this->postJson('/api/marketplace/subscribe/deleteCard', [])
         ->assertUnprocessable();
 
-    $this->postJson('/api/seller/subscribe/changeSubscriptionPlan', [])
+    $this->postJson('/api/marketplace/subscribe/changeSubscriptionPlan', [])
         ->assertUnprocessable();
 
-    $this->postJson('/api/seller/subscribe/approximateAmountDifference', [
+    $this->postJson('/api/marketplace/subscribe/approximateAmountDifference', [
         'plan_id' => 'missing',
         'price_id' => 'missing',
     ])->assertUnprocessable();
 
-    $this->postJson('/api/seller/subscribe/estimateNewPlanCost', [])
+    $this->postJson('/api/marketplace/subscribe/estimateNewPlanCost', [])
         ->assertUnprocessable();
 
-    $this->postJson('/api/seller/subscribe/plan', [])
+    $this->postJson('/api/marketplace/subscribe/plan', [])
         ->assertUnprocessable();
 
-    $this->putJson('/api/seller/subscribe/retryPayment')
+    $this->putJson('/api/marketplace/subscribe/retryPayment')
         ->assertNotFound()
         ->assertJsonPath('errors', 'Subscription not found');
 
-    $this->getJson('/api/seller/subscribe/calculateNextBilling')
+    $this->getJson('/api/marketplace/subscribe/calculateNextBilling')
         ->assertNotFound();
 
     $subscription = StoreSubscription::query()->create([
@@ -155,7 +155,7 @@ test('billing actions that do not call stripe stay local', function () {
         'pm_last_four' => '4242',
     ]);
 
-    $this->postJson('/api/seller/subscribe/clearSubscription', [
+    $this->postJson('/api/marketplace/subscribe/clearSubscription', [
         'store_id' => $store->id,
     ])->assertOk();
 

@@ -12,7 +12,7 @@ use OpenApi\Attributes as OA;
 class CurrencyListController extends Controller
 {
     #[OA\Get(
-        path: '/api/misc/currency',
+        path: '/api/marketplace/misc/currency',
         summary: 'List all currencies',
         security: [['sellerAuth' => []]],
         tags: ['Reference Data'],

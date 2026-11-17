@@ -17,7 +17,7 @@ beforeEach(function () {
 });
 
 test('current password requires authentication', function () {
-    $this->postJson('/api/seller/password/current', ['password' => 'password'])
+    $this->postJson('/api/marketplace/store/settings/security/current-password', ['password' => 'password'])
         ->assertUnauthorized();
 });
 
@@ -25,7 +25,7 @@ test('current password rejects an incorrect password', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/password/current', ['password' => 'wrong-password'])
+    $this->postJson('/api/marketplace/store/settings/security/current-password', ['password' => 'wrong-password'])
         ->assertUnprocessable()
         ->assertJsonPath('errors.password', 'The provided password is incorrect.');
 });
@@ -34,7 +34,7 @@ test('current password returns a reset token when correct', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/password/current', ['password' => 'password'])
+    $this->postJson('/api/marketplace/store/settings/security/current-password', ['password' => 'password'])
         ->assertOk()
         ->assertJsonStructure(['token']);
 });
@@ -47,7 +47,7 @@ test('seller can change their password and receives a confirmation email', funct
 
     $token = Password::broker('sellers')->createToken($seller);
 
-    $this->postJson('/api/seller/password/change', [
+    $this->postJson('/api/marketplace/store/settings/security/new-password', [
         'token' => $token,
         'password' => 'new-password',
         'password_confirmation' => 'new-password',
@@ -60,7 +60,7 @@ test('change password rejects an invalid token', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/password/change', [
+    $this->postJson('/api/marketplace/store/settings/security/new-password', [
         'token' => 'invalid-token',
         'password' => 'new-password',
         'password_confirmation' => 'new-password',
@@ -68,7 +68,7 @@ test('change password rejects an invalid token', function () {
 });
 
 test('two factor otp requires authentication', function () {
-    $this->postJson('/api/seller/2fa/otp')->assertUnauthorized();
+    $this->postJson('/api/marketplace/store/settings/security/2fa-verification')->assertUnauthorized();
 });
 
 test('seller can request a 2fa enable otp', function () {
@@ -77,7 +77,7 @@ test('seller can request a 2fa enable otp', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/2fa/otp')
+    $this->postJson('/api/marketplace/store/settings/security/2fa-verification')
         ->assertOk()
         ->assertJsonPath('message', 'OTP sent to your email.');
 
@@ -91,7 +91,7 @@ test('seller can enable 2fa with a valid otp and receives a confirmation email',
     (new OTPService($seller))->invalidate()->generate();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/2fa/enable', ['otp' => 1234])
+    $this->postJson('/api/marketplace/store/settings/security/2fa-verification/enable', ['otp' => 1234])
         ->assertOk()
         ->assertJsonPath('message', 'Two-factor authentication enabled.');
 
@@ -103,7 +103,7 @@ test('enabling 2fa rejects an invalid otp', function () {
     $seller = Seller::factory()->verified()->create(['twofa_enabled' => 0]);
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/2fa/enable', ['otp' => 9999])
+    $this->postJson('/api/marketplace/store/settings/security/2fa-verification/enable', ['otp' => 9999])
         ->assertBadRequest()
         ->assertJsonPath('message', 'Invalid or expired OTP.');
 
@@ -115,7 +115,7 @@ test('seller can disable 2fa with a valid otp', function () {
     (new OTPService($seller))->invalidate()->generate();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/2fa/disable', ['otp' => 1234])
+    $this->postJson('/api/marketplace/store/settings/security/2fa-verification/disable', ['otp' => 1234])
         ->assertOk()
         ->assertJsonPath('message', 'Two-factor authentication disabled.');
 
@@ -126,7 +126,7 @@ test('disabling 2fa rejects an invalid otp', function () {
     $seller = Seller::factory()->verified()->withTwoFactor()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/2fa/disable', ['otp' => 9999])
+    $this->postJson('/api/marketplace/store/settings/security/2fa-verification/disable', ['otp' => 9999])
         ->assertBadRequest();
 
     expect($seller->fresh()->twofa_enabled)->toBe(1);

@@ -38,9 +38,19 @@ class Section extends Model
 
     protected static function booted(): void
     {
-        static::updated(fn (Section $section) => Cache::forget("store_sections_{$section->store_id}"));
-        static::deleted(fn (Section $section) => Cache::forget("store_sections_{$section->store_id}"));
-        static::created(fn (Section $section) => Cache::forget("store_sections_{$section->store_id}"));
+        static::updated(fn (Section $section) => self::forgetListCache($section->store_id));
+        static::deleted(fn (Section $section) => self::forgetListCache($section->store_id));
+        static::created(fn (Section $section) => self::forgetListCache($section->store_id));
+    }
+
+    public static function forgetListCache(int|string|null $storeId): void
+    {
+        if ($storeId === null) {
+            return;
+        }
+
+        Cache::forget("store_sections_{$storeId}");
+        Cache::forget("store_sections_{$storeId}.apis");
     }
 
     public function items(): BelongsToMany

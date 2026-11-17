@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ProductShowController extends Controller
 {
     #[OA\Get(
-        path: '/api/seller/product/{uuid}',
+        path: '/api/marketplace/product/{uuid}',
         summary: 'Show a single product',
         security: [['sellerAuth' => []]],
         tags: ['Product'],
