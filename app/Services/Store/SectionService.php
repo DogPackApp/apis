@@ -7,7 +7,6 @@ use App\Models\Store\Section;
 use App\Models\Store\Store;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 
 class SectionService
 {
@@ -56,7 +55,7 @@ class SectionService
 
     public function updateItemsToSection(array $itemIds, $section): array
     {
-        Cache::forget("store_sections_{$section->store_id}");
+        Section::forgetListCache($section->store_id);
 
         $maxOrder = $section->items()
             ->where('item_section.section_id', $section->id)
@@ -74,7 +73,7 @@ class SectionService
 
     public function removeItemsFromSection(array $itemIds, $section): int
     {
-        Cache::forget("store_sections_{$section->store_id}");
+        Section::forgetListCache($section->store_id);
 
         return $section->items()->detach($itemIds);
     }

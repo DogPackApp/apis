@@ -4,6 +4,8 @@ use App\Models\Product\Item;
 use App\Models\Seller\Seller;
 use App\Models\Store\Section;
 use App\Models\Store\Store;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Passport\Passport;
 use Tests\Concerns\InteractsWithSellerAuth;
 
@@ -63,6 +65,31 @@ test('seller can create and list sections', function () {
         ->assertJsonCount(2, 'data')
         ->assertJsonPath('data.0.name', 'Best Sellers')
         ->assertJsonPath('data.1.name', 'New');
+});
+
+test('an unreadable section cache is rebuilt without replacing the shared key', function () {
+    [, $store] = actingSellerWithStore();
+    makeSection($store, 'Best Sellers', 1);
+
+    $key = "store_sections_{$store->id}";
+    $shared = unserialize(
+        'O:39:"Illuminate\\Database\\Eloquent\\Collection":0:{}',
+        ['allowed_classes' => false],
+    );
+    Cache::forever($key, $shared);
+
+    $this->getJson('/api/marketplace/store/section')
+        ->assertOk()
+        ->assertJsonPath('data.0.name', 'Best Sellers')
+        ->assertJsonPath('data.0.items_count', 0);
+
+    $cached = Cache::get($key.'.apis');
+
+    expect(Cache::get($key))->toBe($shared)
+        ->and($cached)->toBeInstanceOf(Collection::class)
+        ->and($cached->first())->toBeInstanceOf(Section::class)
+        ->and($cached->first()->name)->toBe('Best Sellers')
+        ->and(unserialize(serialize($cached), ['allowed_classes' => true])->first()->name)->toBe('Best Sellers');
 });
 
 test('section create validates the name', function () {

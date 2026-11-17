@@ -5,15 +5,14 @@ namespace App\Services\Product;
 use App\Models\Product\Category;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Throwable;
 
 class CategoryService
 {
     public function getAllCategories(string $language = 'en'): Collection
     {
-        $cachekeyLanguage = 'website:marketplace:categories:all_categories_flat.'.$language;
+        $cachekeyLanguage = 'website:marketplace:categories:all_categories_flat.'.$language.'.apis';
 
-        return $this->rememberCategories($cachekeyLanguage, function () use ($language) {
+        return Cache::remember($cachekeyLanguage, 86400, function () use ($language) {
             if ($language === 'en') {
                 return Category::where('is_active', 1)
                     ->orderBy('id')
@@ -41,7 +40,7 @@ class CategoryService
 
     public function getCategoriesSellerStructure(string $language = 'en'): Collection
     {
-        return $this->rememberCategories('website:marketplace:categories:categories_seller_structure.'.$language, function () use ($language) {
+        return Cache::remember('website:marketplace:categories:categories_seller_structure.'.$language.'.apis', 86400, function () use ($language) {
             $allCategories = $this->getAllCategories($language);
 
             return $allCategories->map(function ($category) use ($allCategories) {
@@ -121,61 +120,5 @@ class CategoryService
         }
 
         return array_reverse($parentNames);
-    }
-
-    /**
-     * Backend-api stores Eloquent models in the shared keys. This app's cache
-     * store will not unserialize those models, so a miss or a bad value is
-     * rebuilt as attribute rows under a separate key.
-     *
-     * @param  callable(): Collection<int, Category>  $resolve
-     * @return Collection<int, Category>
-     */
-    private function rememberCategories(string $key, callable $resolve): Collection
-    {
-        try {
-            $shared = Cache::get($key);
-
-            if ($shared instanceof Collection && $this->categoriesBelongToThisApp($shared)) {
-                return $shared;
-            }
-        } catch (Throwable) {
-            // The shared value was serialized for the other application.
-        }
-
-        $ownKey = $key.'.apis';
-
-        try {
-            $own = Cache::get($ownKey);
-            $rows = is_array($own) && ($own['category_cache'] ?? null) === 1 && is_array($own['rows'] ?? null)
-                ? $own['rows']
-                : null;
-
-            if (is_array($rows)) {
-                return Category::hydrate($rows);
-            }
-        } catch (Throwable) {
-            // The previous copy was not readable either.
-        }
-
-        $categories = $resolve();
-
-        Cache::put($ownKey, [
-            'category_cache' => 1,
-            'rows' => $categories->map(fn (Category $category) => $category->getAttributes())->values()->all(),
-        ], 86400);
-
-        return $categories;
-    }
-
-    private function categoriesBelongToThisApp(Collection $categories): bool
-    {
-        foreach ($categories as $category) {
-            if (! $category instanceof Category) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }
