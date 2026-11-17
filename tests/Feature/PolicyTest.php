@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Product\Gallery;
 use App\Models\Product\Item;
+use App\Models\Product\ItemMedia;
 use App\Models\Seller\Seller;
 use App\Models\Store\Policy;
 use App\Models\Store\Store;
@@ -166,17 +168,36 @@ test('policy items return the product uuid', function () {
     $uuid = $this->postJson('/api/marketplace/policy', ['name' => 'With items', 'time' => null])
         ->json('data.uuid');
 
-    $item = Item::factory()->create(['store_id' => $store->id, 'policy_id' => null]);
+    $item = Item::factory()->create([
+        'store_id' => $store->id,
+        'policy_id' => null,
+        'media_url' => 'uploads/products/cover.webp',
+    ]);
+
+    $gallery = new Gallery;
+    $gallery->store_id = $store->id;
+    $gallery->url = 'uploads/products/cover.webp';
+    $gallery->type = 'image/webp';
+    $gallery->save();
+
+    ItemMedia::query()->create([
+        'item_id' => $item->id,
+        'gallery_id' => $gallery->id,
+        'order' => 0,
+    ]);
 
     $this->postJson('/api/marketplace/policy/'.$uuid.'/items', [
         'items' => [(string) $item->uuid],
     ])->assertNoContent();
 
-    $this->getJson('/api/marketplace/policy/'.$uuid.'/items')
+    $response = $this->getJson('/api/marketplace/policy/'.$uuid.'/items')
         ->assertOk()
-        ->assertJsonPath('data.items.0.uuid', (string) $item->uuid)
-        ->assertJsonPath('data.items.0.tags', [])
-        ->assertJsonPath('data.items.0.medias', [])
-        ->assertJsonPath('data.items.0.sections', [])
-        ->assertJsonPath('data.items.0.itemVariants', []);
+        ->assertJsonPath('data.items.0.title', $item->title)
+        ->assertJsonPath('data.items.0.media_url', $gallery->url)
+        ->assertJsonPath('data.items.0.media.uuid', (string) $gallery->uuid)
+        ->assertJsonPath('data.items.0.media.url', $gallery->url)
+        ->assertJsonPath('data.items.0.media.type', 'image/webp');
+
+    expect(array_keys($response->json('data.items.0')))->toBe(['title', 'media_url', 'media'])
+        ->and(array_keys($response->json('data.items.0.media')))->toBe(['uuid', 'url', 'type', 'name', 'order']);
 });

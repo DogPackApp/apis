@@ -16,22 +16,8 @@ class PolicyItemsController extends Controller
     {
         try {
             $policy->load([
-                'items.category',
-                'items.subscribeSaveSetting',
-                'items.store.settings',
-                'items.policy',
-                'items.tags',
-                'items.discount',
-                'items.customization',
-                'items.price',
-                'items.medias',
+                'items' => fn ($query) => $query->select(['id', 'policy_id', 'title']),
                 'items.media',
-                'items.varyBy',
-                'items.sections',
-                'items.attributes.attributeOptions',
-                'items.itemVariants.media',
-                'items.itemVariants.attributesOption.attribute',
-                'items.activeFacets',
             ]);
 
             return PolicyResource::make($policy)
