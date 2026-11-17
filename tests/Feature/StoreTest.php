@@ -18,7 +18,7 @@ beforeEach(function () {
 });
 
 test('store creation requires authentication', function () {
-    $this->postJson('/api/seller/store', ['name' => 'My Store'])
+    $this->postJson('/api/marketplace/store', ['name' => 'My Store'])
         ->assertUnauthorized();
 });
 
@@ -26,7 +26,7 @@ test('seller can create a store', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/store', [
+    $this->postJson('/api/marketplace/store', [
         'name' => 'Ada\'s Widgets',
         'description' => 'The best widgets.',
         'phone' => '4165550100',
@@ -51,7 +51,7 @@ test('seller can upload a store image on create', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $response = $this->post('/api/seller/store', [
+    $response = $this->post('/api/marketplace/store', [
         'name' => 'Image Store',
         'phone' => '4165550100',
         'image' => UploadedFile::fake()->image('logo.jpg'),
@@ -70,7 +70,7 @@ test('store update rejects a non-image file for image', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->post('/api/seller/store/'.$store->uuid, [
+    $this->post('/api/marketplace/store/'.$store->uuid, [
         'image' => UploadedFile::fake()->create('not-an-image.pdf', 10),
     ])->assertUnprocessable();
 });
@@ -83,7 +83,7 @@ test('seller can upload a new store image on update', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->post('/api/seller/store/'.$store->uuid, [
+    $this->post('/api/marketplace/store/'.$store->uuid, [
         'image' => UploadedFile::fake()->image('new-logo.jpg'),
     ])->assertCreated();
 
@@ -99,7 +99,7 @@ test('seller cannot create a second store', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/store', [
+    $this->postJson('/api/marketplace/store', [
         'name' => 'Second Store',
         'phone' => '4165550100',
     ])->assertUnprocessable()
@@ -114,7 +114,7 @@ test('seller can update their store', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/store/'.$store->uuid, ['timezone' => 'America/New_York'])
+    $this->postJson('/api/marketplace/store/'.$store->uuid, ['timezone' => 'America/New_York'])
         ->assertCreated()
         ->assertJsonPath('data.uuid', $store->uuid)
         ->assertJsonPath('data.timezone', 'America/New_York')
@@ -131,7 +131,7 @@ test('store update stores the timezone string it is given', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/store/'.$store->uuid, ['timezone' => 'Not/A/Real/Zone'])
+    $this->postJson('/api/marketplace/store/'.$store->uuid, ['timezone' => 'Not/A/Real/Zone'])
         ->assertCreated()
         ->assertJsonPath('data.timezone', 'Not/A/Real/Zone');
 });
@@ -140,20 +140,20 @@ test('store show returns not found when seller has no store', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/store')
+    $this->getJson('/api/marketplace/store')
         ->assertNotFound()
         ->assertJsonPath('message', 'No Store Found');
 });
 
 test('store address requires authentication', function () {
-    $this->getJson('/api/seller/store/address')->assertUnauthorized();
+    $this->getJson('/api/marketplace/store/address')->assertUnauthorized();
 });
 
 test('store address fails when the seller has no store', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/store/address')->assertServerError();
+    $this->getJson('/api/marketplace/store/address')->assertServerError();
 });
 
 test('store address returns an empty data object when the store has no address', function () {
@@ -161,7 +161,7 @@ test('store address returns an empty data object when the store has no address',
     Store::factory()->create(['seller_id' => $seller->id]);
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/store/address')
+    $this->getJson('/api/marketplace/store/address')
         ->assertOk()
         ->assertExactJson(['data' => []]);
 });
@@ -184,7 +184,7 @@ test('store address returns the saved shipping address', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/store/address')
+    $this->getJson('/api/marketplace/store/address')
         ->assertOk()
         ->assertJsonPath('data.uuid', $address->uuid)
         ->assertJsonPath('data.address', '123 King St, Toronto, ON')
@@ -215,7 +215,7 @@ test('store address ignores a soft-deleted shipping address', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/store/address')
+    $this->getJson('/api/marketplace/store/address')
         ->assertOk()
         ->assertExactJson(['data' => []]);
 });

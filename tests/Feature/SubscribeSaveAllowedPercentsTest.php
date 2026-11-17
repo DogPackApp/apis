@@ -19,7 +19,7 @@ test('a seller sees the default subscribe and save percents', function () {
     Store::factory()->create(['seller_id' => $seller->id]);
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/store/subscribe-save/allowed-percents')
+    $this->getJson('/api/marketplace/store/subscribe-save/allowed-percents')
         ->assertOk()
         ->assertJsonPath('subscribe_save_allowed_percents', [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
 });
@@ -37,7 +37,7 @@ test('a seller sees the percents saved for the platform', function () {
         'max_discount_amount' => ['US' => 20],
     ]);
 
-    $this->getJson('/api/seller/store/subscribe-save/allowed-percents')
+    $this->getJson('/api/marketplace/store/subscribe-save/allowed-percents')
         ->assertOk()
         ->assertJsonPath('subscribe_save_allowed_percents', [10, 20]);
 });

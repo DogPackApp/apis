@@ -15,26 +15,26 @@ beforeEach(function () {
 });
 
 test('country list requires authentication', function () {
-    $this->getJson('/api/misc/country')->assertUnauthorized();
+    $this->getJson('/api/marketplace/misc/country')->assertUnauthorized();
 });
 
 test('currency list requires authentication', function () {
-    $this->getJson('/api/misc/currency')->assertUnauthorized();
+    $this->getJson('/api/marketplace/misc/currency')->assertUnauthorized();
 });
 
 test('language list requires authentication', function () {
-    $this->getJson('/api/misc/language')->assertUnauthorized();
+    $this->getJson('/api/marketplace/misc/language')->assertUnauthorized();
 });
 
 test('state list requires authentication', function () {
-    $this->getJson('/api/misc/state')->assertUnauthorized();
+    $this->getJson('/api/marketplace/misc/state')->assertUnauthorized();
 });
 
 test('state list requires a country id', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/misc/state')
+    $this->getJson('/api/marketplace/misc/state')
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['country_id']);
 });
@@ -56,7 +56,7 @@ test('country list returns the expected shape', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/misc/country')
+    $this->getJson('/api/marketplace/misc/country')
         ->assertOk()
         ->assertJsonStructure([
             'data' => [
@@ -77,7 +77,7 @@ test('currency list returns the misc shape with currency fields always null', fu
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/misc/currency')
+    $this->getJson('/api/marketplace/misc/currency')
         ->assertOk()
         ->assertJsonStructure([
             'data' => [
@@ -113,7 +113,7 @@ test('state list returns states for the requested country ordered by name', func
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/misc/state?country_id=38')
+    $this->getJson('/api/marketplace/misc/state?country_id=38')
         ->assertOk()
         ->assertJsonCount(2, 'data')
         ->assertJsonPath('data.0.id', 58)
@@ -129,7 +129,7 @@ test('language list returns the misc shape with currency fields always null', fu
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/misc/language')
+    $this->getJson('/api/marketplace/misc/language')
         ->assertOk()
         ->assertJsonPath('data.0.name', 'English')
         ->assertJsonPath('data.0.currency_code', null);

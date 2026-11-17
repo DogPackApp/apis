@@ -12,7 +12,7 @@ use OpenApi\Attributes as OA;
 class LanguageListController extends Controller
 {
     #[OA\Get(
-        path: '/api/misc/language',
+        path: '/api/marketplace/misc/language',
         summary: 'List all languages',
         security: [['sellerAuth' => []]],
         tags: ['Reference Data'],

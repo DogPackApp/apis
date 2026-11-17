@@ -15,9 +15,9 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerTwoFactorOtpController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/2fa/otp',
+        path: '/api/marketplace/store/settings/security/2fa-verification',
         summary: 'Send an OTP to start enabling two-factor authentication',
-        description: 'Emails an OTP to the authenticated seller. Submit it to POST /api/seller/2fa/enable to actually turn 2FA on.',
+        description: 'Emails an OTP to the authenticated seller. Submit it to POST /api/marketplace/store/settings/security/2fa-verification/enable to actually turn 2FA on.',
         security: [['sellerAuth' => []]],
         tags: ['Seller Security'],
         responses: [

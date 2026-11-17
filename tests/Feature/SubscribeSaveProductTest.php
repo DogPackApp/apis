@@ -51,7 +51,7 @@ test('a product reports subscribe and save from its category and store discount'
         'type' => Item::TYPES[Item::TYPE_PHYSICAL],
     ]);
 
-    $this->getJson("/api/seller/product/{$item->uuid}")
+    $this->getJson("/api/marketplace/product/{$item->uuid}")
         ->assertOk()
         ->assertJsonPath('data.subscribe_save.label', true)
         ->assertJsonPath('data.subscribe_save.eligible', true)
@@ -64,7 +64,7 @@ test('a product reports subscribe and save from its category and store discount'
         'type' => Item::TYPES[Item::TYPE_DIGITAL],
     ]);
 
-    $this->getJson("/api/seller/product/{$digital->uuid}")
+    $this->getJson("/api/marketplace/product/{$digital->uuid}")
         ->assertOk()
         ->assertJsonPath('data.subscribe_save.label', false)
         ->assertJsonPath('data.subscribe_save.reason', 'digital');
@@ -80,14 +80,14 @@ test('a seller can save a product subscribe and save discount', function () {
         'category_id' => subscribeSaveCategory(true)->id,
     ]);
 
-    $this->putJson("/api/seller/product/{$item->uuid}", [
+    $this->putJson("/api/marketplace/product/{$item->uuid}", [
         'subscribe_save' => [
             'seller_disabled' => true,
             'discount_percent' => 15,
         ],
     ])->assertOk();
 
-    $this->getJson("/api/seller/product/{$item->uuid}")
+    $this->getJson("/api/marketplace/product/{$item->uuid}")
         ->assertOk()
         ->assertJsonPath('data.subscribe_save.seller_disabled', true)
         ->assertJsonPath('data.subscribe_save.discount_percent', 15)
@@ -99,7 +99,7 @@ test('a product discount is rejected until the store has a global discount', fun
     $store = subscribeSaveSeller();
     $item = Item::factory()->for($store)->create();
 
-    $response = $this->putJson("/api/seller/product/{$item->uuid}", [
+    $response = $this->putJson("/api/marketplace/product/{$item->uuid}", [
         'subscribe_save' => ['discount_percent' => 15],
     ])->assertUnprocessable();
 
@@ -139,7 +139,7 @@ test('the subscribe and save product list keeps seller-disabled products and dro
     ]);
     Item::factory()->for($store)->create(['title' => 'Category off', 'category_id' => $disabled->id]);
 
-    $titles = collect($this->getJson('/api/seller/product?subscribe_save=1')->assertOk()->json('data'))->pluck('title');
+    $titles = collect($this->getJson('/api/marketplace/product?subscribe_save=1')->assertOk()->json('data'))->pluck('title');
 
     expect($titles->all())->toEqualCanonicalizing(['In program', 'Seller off', 'Forced on']);
 });

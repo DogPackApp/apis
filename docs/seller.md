@@ -68,7 +68,7 @@ Overrides the default `CanResetPassword` behavior. Instead of Laravel's built-in
 $seller->store; // App\Models\Store\Store|null
 ```
 
-A seller has at most one `Store` (see [store.md](./store.md)). No store exists until the seller completes the "create store" onboarding step (`POST /api/seller/store`).
+A seller has at most one `Store` (see [store.md](./store.md)). No store exists until the seller completes the "create store" onboarding step (`POST /api/marketplace/store`).
 
 ## Related models
 
@@ -83,7 +83,7 @@ A seller has at most one `Store` (see [store.md](./store.md)). No store exists u
 - Scopes (`Passport::tokensCan()`, set in `App\Providers\AppServiceProvider::boot()`): `seller` (normal API access), `master-login` (reserved for future admin impersonation — not currently issued anywhere).
 - Token lifetimes: access tokens 30 days, refresh tokens 90 days (`Passport::tokensExpireIn` / `refreshTokensExpireIn`, also in `AppServiceProvider::boot()`).
 
-## HTTP surface (`routes/api.php`, prefix `/api/seller`)
+## HTTP surface (`routes/seller`, prefix `/api/marketplace/seller`)
 
 All routes are rate-limited via the `seller-auth` limiter (10 requests/minute, keyed by `email` input or IP — `AppServiceProvider::boot()`) where noted "public".
 

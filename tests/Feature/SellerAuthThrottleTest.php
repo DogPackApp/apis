@@ -15,13 +15,13 @@ test('seller login is throttled after too many attempts', function () {
     ]);
 
     for ($i = 0; $i < 10; $i++) {
-        $this->postJson('/api/seller/login', [
+        $this->postJson('/api/marketplace/seller/login', [
             'email' => $seller->email,
             'password' => 'wrong-password',
         ])->assertUnauthorized();
     }
 
-    $this->postJson('/api/seller/login', [
+    $this->postJson('/api/marketplace/seller/login', [
         'email' => $seller->email,
         'password' => 'wrong-password',
     ])->assertStatus(429);

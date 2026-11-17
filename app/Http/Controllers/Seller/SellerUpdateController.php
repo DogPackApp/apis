@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerUpdateController extends Controller
 {
     #[OA\Put(
-        path: '/api/seller/{seller}',
+        path: '/api/marketplace/{seller}',
         summary: "Update the authenticated seller's own profile",
         description: 'A seller may only update themself — updating any other seller uuid returns 422.',
         security: [['sellerAuth' => []]],

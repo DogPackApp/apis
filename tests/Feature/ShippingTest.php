@@ -45,10 +45,10 @@ function shippingCountry(): Country
 }
 
 test('shipping routes require authentication', function () {
-    $this->getJson('/api/seller/shipping/rates')->assertUnauthorized();
-    $this->postJson('/api/seller/shipping', [])->assertUnauthorized();
-    $this->getJson('/api/seller/shipping/shipping')->assertUnauthorized();
-    $this->getJson('/api/seller/shipping/packaging')->assertUnauthorized();
+    $this->getJson('/api/marketplace/shipping/rates')->assertUnauthorized();
+    $this->postJson('/api/marketplace/shipping', [])->assertUnauthorized();
+    $this->getJson('/api/marketplace/shipping/shipping')->assertUnauthorized();
+    $this->getJson('/api/marketplace/shipping/packaging')->assertUnauthorized();
 });
 
 test('seller sees global rates and can create a custom method', function () {
@@ -59,7 +59,7 @@ test('seller sees global rates and can create a custom method', function () {
     $global->description = 'Carrier ground';
     $global->save();
 
-    $created = $this->postJson('/api/seller/shipping/custom', [
+    $created = $this->postJson('/api/marketplace/shipping/custom', [
         'name' => 'Local drop off',
         'description' => 'Hand delivery',
     ])->assertCreated()
@@ -67,14 +67,14 @@ test('seller sees global rates and can create a custom method', function () {
         ->assertJsonPath('description', 'Hand delivery')
         ->json('uuid');
 
-    $this->putJson('/api/seller/shipping/custom/'.$created, [
+    $this->putJson('/api/marketplace/shipping/custom/'.$created, [
         'name' => 'Local pickup',
         'description' => 'Counter',
     ])->assertOk()
         ->assertJsonPath('uuid', $created)
         ->assertJsonPath('name', 'Local pickup');
 
-    $this->getJson('/api/seller/shipping/rates')
+    $this->getJson('/api/marketplace/shipping/rates')
         ->assertOk()
         ->assertJsonFragment(['name' => 'Ground'])
         ->assertJsonFragment(['name' => 'Local pickup']);
@@ -92,7 +92,7 @@ test('saving zones and packaging replaces the store shipping setup', function ()
     $rate->description = 'Carrier ground';
     $rate->save();
 
-    $this->postJson('/api/seller/shipping', [
+    $this->postJson('/api/marketplace/shipping', [
         'shipping' => [[
             'name' => 'Domestic',
             'country' => [$country->id],
@@ -120,7 +120,7 @@ test('saving zones and packaging replaces the store shipping setup', function ()
 
     expect((new OnboardingService)->fetchOnboardingStatus($seller)->is_shipping)->toBe(1);
 
-    $this->getJson('/api/seller/shipping/shipping')
+    $this->getJson('/api/marketplace/shipping/shipping')
         ->assertOk()
         ->assertJsonPath('data.0.name', 'Domestic')
         ->assertJsonPath('data.0.shipping_zone_country.0.country.name', 'United States')
@@ -128,7 +128,7 @@ test('saving zones and packaging replaces the store shipping setup', function ()
         ->assertJsonPath('data.0.shipping_zone_rates.0.condition_type', 'PRICE')
         ->assertJsonPath('data.0.shipping_zone_rates.0.shipping_rate.name', 'Ground');
 
-    $this->getJson('/api/seller/shipping/packaging')
+    $this->getJson('/api/marketplace/shipping/packaging')
         ->assertOk()
         ->assertJsonPath('data.0.name', 'Mailer')
         ->assertJsonPath('data.0.type', 'BOX')
@@ -149,7 +149,7 @@ test('address autocomplete returns the google payload', function () {
         ]),
     ]);
 
-    $this->postJson('/api/seller/shipping/address/autocomplete', [
+    $this->postJson('/api/marketplace/shipping/address/autocomplete', [
         'keyword' => '123 Main',
     ])->assertOk()
         ->assertJsonPath('status', 'OK')
@@ -183,7 +183,7 @@ test('places saves the google address and the easypost id', function () {
         $mock->shouldReceive('createAddress')->once()->andReturn($easypostAddress);
     });
 
-    $this->postJson('/api/seller/shipping/address/places', [
+    $this->postJson('/api/marketplace/shipping/address/places', [
         'place_id' => 'place-1',
     ])->assertOk()
         ->assertJsonPath('data.easypost_id', 'adr_123')

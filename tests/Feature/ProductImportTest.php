@@ -58,7 +58,7 @@ test('csv import stores the rows and queues validation', function () {
     $csv = stream_get_contents($handle);
     fclose($handle);
 
-    $this->post('/api/seller/import/csv', [
+    $this->post('/api/marketplace/import/csv', [
         'csv' => UploadedFile::fake()->createWithContent('products.csv', $csv),
     ])->assertOk()
         ->assertJsonStructure(['batchId']);
@@ -79,7 +79,7 @@ test('csv batch list returns the row errors', function () {
         'errors' => ['2_B' => 'Title is required'],
     ]);
 
-    $this->getJson('/api/seller/import/csv/'.$batchId)
+    $this->getJson('/api/marketplace/import/csv/'.$batchId)
         ->assertOk()
         ->assertJsonPath('data.0.2_B', 'Title is required');
 });
@@ -89,7 +89,7 @@ test('csv process queues the import batch', function () {
     Bus::fake();
     $batchId = (string) str()->uuid();
 
-    $this->postJson('/api/seller/import/csv/process/'.$batchId)
+    $this->postJson('/api/marketplace/import/csv/process/'.$batchId)
         ->assertOk()
         ->assertJsonPath('message', 'Initiated Importing of Products...');
 
@@ -117,13 +117,13 @@ test('bulk list and update edit the selected product', function () {
         'allow_overselling' => false,
     ]);
 
-    $this->postJson('/api/seller/bulk', [
+    $this->postJson('/api/marketplace/bulk', [
         'products' => [(string) $item->uuid],
     ])->assertOk()
         ->assertJsonPath('data.0.title', 'Chew Toy')
         ->assertJsonPath('data.0.category.name', 'Toys');
 
-    $this->putJson('/api/seller/bulk', [
+    $this->putJson('/api/marketplace/bulk', [
         'products' => [[
             'uuid' => (string) $item->uuid,
             'status' => 'DRAFT',

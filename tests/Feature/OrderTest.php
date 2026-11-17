@@ -39,12 +39,12 @@ test('a seller can list and show an order', function () {
         'total' => 2500,
     ]);
 
-    $this->getJson('/api/seller/orders')
+    $this->getJson('/api/marketplace/orders')
         ->assertOk()
         ->assertJsonPath('data.0.order_no', '1001')
         ->assertJsonPath('data.0.customer.name', 'Ada Buyer');
 
-    $this->getJson('/api/seller/orders/'.$order->uuid)
+    $this->getJson('/api/marketplace/orders/'.$order->uuid)
         ->assertOk()
         ->assertJsonPath('data.order_no', '1001')
         ->assertJsonPath('data.customer.email', 'ada@example.com');

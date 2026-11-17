@@ -22,7 +22,7 @@ class ProductUpdateController extends Controller
     public function __construct(private readonly ProductService $productService) {}
 
     #[OA\Put(
-        path: '/api/seller/product/{uuid}',
+        path: '/api/marketplace/product/{uuid}',
         summary: 'Update a product',
         description: "Validation only runs when status is ACTIVE — any other status skips validation and stores the payload as-is, matching backend-api's behavior.",
         security: [['sellerAuth' => []]],

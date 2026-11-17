@@ -55,7 +55,7 @@ test('an approved Stripe account marks the store verified', function () {
 
     $this->call(
         'POST',
-        '/api/seller/stripe/webhook',
+        '/api/marketplace/stripe/webhook',
         [],
         [],
         [],
@@ -99,7 +99,7 @@ test('a captured payment marks the order paid', function () {
 
     $this->call(
         'POST',
-        '/api/seller/stripe/webhook/paymentcapture',
+        '/api/marketplace/stripe/webhook/paymentcapture',
         [],
         [],
         [],
@@ -124,7 +124,7 @@ test('a paid subscription invoice activates the store subscription', function ()
         'is_active' => 0,
     ]);
 
-    $this->postJson('/api/seller/stripe/webhook/subscription', [
+    $this->postJson('/api/marketplace/stripe/webhook/subscription', [
         'type' => 'invoice.payment_succeeded',
         'data' => [
             'object' => [

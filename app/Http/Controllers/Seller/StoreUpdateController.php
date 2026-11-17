@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
 class StoreUpdateController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/store/{uuid}',
+        path: '/api/marketplace/store/{uuid}',
         summary: 'Update a store',
         security: [['sellerAuth' => []]],
         tags: ['Store'],

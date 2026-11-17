@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 class StoreShowController extends Controller
 {
     #[OA\Get(
-        path: '/api/seller/store',
+        path: '/api/marketplace/store',
         summary: "Get the authenticated seller's store",
         security: [['sellerAuth' => []]],
         tags: ['Store'],

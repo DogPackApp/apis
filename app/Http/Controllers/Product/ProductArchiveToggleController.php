@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ProductArchiveToggleController extends Controller
 {
     #[OA\Put(
-        path: '/api/seller/product/{uuid}/archive',
+        path: '/api/marketplace/product/{uuid}/archive',
         summary: 'Toggle a product between archived and draft',
         description: 'ACTIVE or DRAFT items move to ARCHIVED. ARCHIVED items move back to DRAFT.',
         security: [['sellerAuth' => []]],

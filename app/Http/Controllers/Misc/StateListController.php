@@ -13,7 +13,7 @@ use OpenApi\Attributes as OA;
 class StateListController extends Controller
 {
     #[OA\Get(
-        path: '/api/misc/state',
+        path: '/api/marketplace/misc/state',
         summary: 'List states for a country',
         security: [['sellerAuth' => []]],
         tags: ['Reference Data'],

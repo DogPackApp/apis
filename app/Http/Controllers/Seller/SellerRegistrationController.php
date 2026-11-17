@@ -18,9 +18,9 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerRegistrationController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/register',
+        path: '/api/marketplace/seller/register',
         summary: 'Register a new seller',
-        description: 'Creates the seller (unverified, status=0), issues an access token immediately, and emails a registration OTP. Verify with POST /api/seller/verify.',
+        description: 'Creates the seller (unverified, status=0), issues an access token immediately, and emails a registration OTP. Verify with POST /api/marketplace/seller/verify.',
         tags: ['Seller Auth'],
         requestBody: new OA\RequestBody(
             required: true,

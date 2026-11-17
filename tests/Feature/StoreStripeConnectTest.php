@@ -15,14 +15,14 @@ beforeEach(function () {
 });
 
 test('stripe connect requires authentication', function () {
-    $this->postJson('/api/seller/stripe/connect')->assertUnauthorized();
+    $this->postJson('/api/marketplace/stripe/connect')->assertUnauthorized();
 });
 
 test('stripe connect returns not found when seller has no store', function () {
     $seller = Seller::factory()->verified()->create();
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/stripe/connect')->assertNotFound();
+    $this->postJson('/api/marketplace/stripe/connect')->assertNotFound();
 });
 
 test('stripe connect creates a new express account and stores the id', function () {
@@ -45,7 +45,7 @@ test('stripe connect creates a new express account and stores the id', function 
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/stripe/connect')
+    $this->postJson('/api/marketplace/stripe/connect')
         ->assertOk()
         ->assertJsonPath('url', 'https://connect.stripe.com/setup/new123');
 
@@ -85,7 +85,7 @@ test('stripe connect uses the uk config and full agreement for a GB store', func
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/stripe/connect')
+    $this->postJson('/api/marketplace/stripe/connect')
         ->assertOk()
         ->assertJsonPath('url', 'https://connect.stripe.com/setup/uk123');
 });
@@ -111,7 +111,7 @@ test('stripe connect refreshes the link for an existing pending account without 
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/stripe/connect')
+    $this->postJson('/api/marketplace/stripe/connect')
         ->assertOk()
         ->assertJsonPath('url', 'https://connect.stripe.com/setup/refresh');
 });
@@ -127,7 +127,7 @@ test('stripe connect returns 422 when the stripe request fails', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/stripe/connect')
+    $this->postJson('/api/marketplace/stripe/connect')
         ->assertUnprocessable()
         ->assertJsonPath('errors.message', 'Stripe is down');
 });

@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 class StoreStripeConnectController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/stripe/connect',
+        path: '/api/marketplace/stripe/connect',
         summary: "Start or resume Stripe Connect onboarding for the seller's store",
         description: 'Creates a Stripe Express account for the store (or refreshes the onboarding link if one already exists) and returns the URL to send the seller to.',
         security: [['sellerAuth' => []]],

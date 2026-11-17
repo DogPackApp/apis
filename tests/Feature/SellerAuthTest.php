@@ -16,7 +16,7 @@ beforeEach(function () {
 });
 
 test('seller registration requires fields', function () {
-    $this->postJson('/api/seller/register')
+    $this->postJson('/api/marketplace/seller/register')
         ->assertUnprocessable()
         ->assertJsonStructure(['errors' => ['first_name', 'last_name', 'email', 'password']]);
 });
@@ -24,7 +24,7 @@ test('seller registration requires fields', function () {
 test('seller can register and receives a token and otp email', function () {
     Mail::fake();
 
-    $response = $this->postJson('/api/seller/register', [
+    $response = $this->postJson('/api/marketplace/seller/register', [
         'first_name' => 'Ada',
         'last_name' => 'Lovelace',
         'email' => 'ada@example.com',
@@ -48,7 +48,7 @@ test('seller login rejects invalid credentials', function () {
         'email' => 'seller@example.com',
     ]);
 
-    $this->postJson('/api/seller/login', [
+    $this->postJson('/api/marketplace/seller/login', [
         'email' => 'seller@example.com',
         'password' => 'wrong-password',
     ])->assertUnauthorized()
@@ -60,7 +60,7 @@ test('seller login returns a token when 2fa is disabled', function () {
         'email' => 'seller@example.com',
     ]);
 
-    $this->postJson('/api/seller/login', [
+    $this->postJson('/api/marketplace/seller/login', [
         'email' => $seller->email,
         'password' => 'password',
     ])->assertOk()
@@ -77,7 +77,7 @@ test('seller login rejects a seller whose store is inactive', function () {
         'states' => Store::STATES_INACTIVE,
     ]);
 
-    $this->postJson('/api/seller/login', [
+    $this->postJson('/api/marketplace/seller/login', [
         'email' => $seller->email,
         'password' => 'password',
     ])->assertUnauthorized()
@@ -93,7 +93,7 @@ test('seller login allows a seller whose store is active', function () {
         'states' => Store::STATES_ACTIVE,
     ]);
 
-    $this->postJson('/api/seller/login', [
+    $this->postJson('/api/marketplace/seller/login', [
         'email' => $seller->email,
         'password' => 'password',
     ])->assertOk();
@@ -106,7 +106,7 @@ test('seller login sends otp when 2fa is enabled', function () {
         'email' => 'seller@example.com',
     ]);
 
-    $this->postJson('/api/seller/login', [
+    $this->postJson('/api/marketplace/seller/login', [
         'email' => $seller->email,
         'password' => 'password',
     ])->assertAccepted()
@@ -118,7 +118,7 @@ test('seller login sends otp when 2fa is enabled', function () {
 });
 
 test('seller login otp rejects unknown email', function () {
-    $this->postJson('/api/seller/login/otp', [
+    $this->postJson('/api/marketplace/seller/login/otp', [
         'email' => 'missing@example.com',
         'otp' => 1234,
     ])->assertBadRequest()
@@ -132,12 +132,12 @@ test('seller can complete 2fa login with otp', function () {
         'email' => 'seller@example.com',
     ]);
 
-    $this->postJson('/api/seller/login', [
+    $this->postJson('/api/marketplace/seller/login', [
         'email' => $seller->email,
         'password' => 'password',
     ])->assertAccepted();
 
-    $this->postJson('/api/seller/login/otp', [
+    $this->postJson('/api/marketplace/seller/login/otp', [
         'email' => $seller->email,
         'otp' => 1234,
     ])->assertOk()
@@ -146,7 +146,7 @@ test('seller can complete 2fa login with otp', function () {
 });
 
 test('seller profile requires authentication', function () {
-    $this->getJson('/api/seller/me')->assertUnauthorized();
+    $this->getJson('/api/marketplace/seller/me')->assertUnauthorized();
 });
 
 test('authenticated seller can view their profile', function () {
@@ -154,7 +154,7 @@ test('authenticated seller can view their profile', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/me')
+    $this->getJson('/api/marketplace/seller/me')
         ->assertOk()
         ->assertJsonPath('data.uuid', $seller->uuid)
         ->assertJsonPath('data.email', $seller->email)
@@ -167,7 +167,7 @@ test('authenticated seller profile includes their store once created', function 
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/me')
+    $this->getJson('/api/marketplace/seller/me')
         ->assertOk()
         ->assertJsonPath('data.store.uuid', $store->uuid)
         ->assertJsonPath('data.store.name', $store->name);
@@ -178,7 +178,7 @@ test('authenticated seller can logout', function () {
     $token = $seller->createToken('SellerAuthToken', ['seller'])->accessToken;
 
     $this->withToken($token)
-        ->postJson('/api/seller/logout')
+        ->postJson('/api/marketplace/seller/logout')
         ->assertOk()
         ->assertJsonPath('message', 'Logged out successfully');
 });
@@ -188,7 +188,7 @@ test('seller verify rejects an invalid otp', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/verify', ['otp' => 9999])
+    $this->postJson('/api/marketplace/seller/verify', ['otp' => 9999])
         ->assertBadRequest()
         ->assertJsonPath('message', 'Invalid or expired OTP.');
 });
@@ -199,7 +199,7 @@ test('seller can verify otp and start onboarding', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->postJson('/api/seller/verify', ['otp' => 1234])
+    $this->postJson('/api/marketplace/seller/verify', ['otp' => 1234])
         ->assertOk()
         ->assertJsonPath('message', 'OTP verified successfully.');
 
@@ -212,7 +212,7 @@ test('onboarding status returns no content when missing', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/onboarding/status')->assertNoContent();
+    $this->getJson('/api/marketplace/seller/onboarding/status')->assertNoContent();
 });
 
 test('onboarding status returns the seller onboarding resource', function () {
@@ -228,7 +228,7 @@ test('onboarding status returns the seller onboarding resource', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->getJson('/api/seller/onboarding/status')
+    $this->getJson('/api/marketplace/seller/onboarding/status')
         ->assertOk()
         ->assertJsonStructure(['data' => ['uuid', 'is_product', 'is_shipping', 'is_store_setting', 'is_finance', 'is_subscribe']]);
 });
@@ -239,7 +239,7 @@ test('seller cannot update another seller', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->putJson('/api/seller/'.$other->uuid, [
+    $this->putJson('/api/marketplace/seller/'.$other->uuid, [
         'first_name' => 'Hacked',
         'last_name' => 'Name',
     ])->assertUnprocessable()
@@ -251,7 +251,7 @@ test('seller can update their own profile', function () {
 
     Passport::actingAs($seller, ['seller'], 'marketplace');
 
-    $this->putJson('/api/seller/'.$seller->uuid, [
+    $this->putJson('/api/marketplace/seller/'.$seller->uuid, [
         'first_name' => 'Updated',
         'last_name' => 'Seller',
         'phone' => '5551234567',

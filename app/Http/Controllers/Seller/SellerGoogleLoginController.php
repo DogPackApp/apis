@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerGoogleLoginController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/google/login',
+        path: '/api/marketplace/seller/google/login',
         summary: 'Log in or register a seller via Google OAuth code exchange',
         description: 'Exchanges an authorization `code` (obtained by the frontend via Google\'s popup/postMessage flow) for a token, then either logs in an existing seller (linking google_id if unset) or creates a new, pre-verified seller.',
         tags: ['Seller Auth'],

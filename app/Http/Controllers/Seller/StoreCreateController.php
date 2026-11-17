@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 class StoreCreateController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/store',
+        path: '/api/marketplace/store',
         summary: 'Create the store for the authenticated seller',
         security: [['sellerAuth' => []]],
         tags: ['Store'],

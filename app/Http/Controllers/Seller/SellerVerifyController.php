@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerVerifyController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/verify',
+        path: '/api/marketplace/seller/verify',
         summary: 'Verify the registration OTP',
         description: 'Sets the seller status to verified and starts onboarding (creates the OnboardingStatus row with every step at 0).',
         security: [['sellerAuth' => []]],

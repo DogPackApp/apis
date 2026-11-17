@@ -14,7 +14,7 @@ beforeEach(function () {
 });
 
 test('google login requires a code', function () {
-    $this->postJson('/api/seller/google/login')
+    $this->postJson('/api/marketplace/seller/google/login')
         ->assertUnprocessable()
         ->assertJsonStructure(['errors' => ['code']]);
 });
@@ -31,7 +31,7 @@ test('google login creates a seller and starts onboarding', function () {
         ]),
     ]);
 
-    $this->postJson('/api/seller/google/login', [
+    $this->postJson('/api/marketplace/seller/google/login', [
         'code' => 'auth-code',
     ])->assertOk()
         ->assertJsonPath('data.email', 'google-seller@example.com')
@@ -64,7 +64,7 @@ test('google login links google id and sends otp when 2fa is enabled', function 
         ]),
     ]);
 
-    $this->postJson('/api/seller/google/login', [
+    $this->postJson('/api/marketplace/seller/google/login', [
         'code' => 'auth-code',
     ])->assertAccepted()
         ->assertJsonPath('twoFa', true)
@@ -84,7 +84,7 @@ test('google login fails when google email is not verified', function () {
         ]),
     ]);
 
-    $this->postJson('/api/seller/google/login', [
+    $this->postJson('/api/marketplace/seller/google/login', [
         'code' => 'auth-code',
     ])->assertBadRequest()
         ->assertJsonPath('message', 'Email not verified with Google');

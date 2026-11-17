@@ -14,9 +14,9 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerChangePasswordController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/password/change',
+        path: '/api/marketplace/store/settings/security/new-password',
         summary: "Change the authenticated seller's password",
-        description: 'Step 2 of the authenticated "change password" flow — pass the token from POST /api/seller/password/current. Sends the same SellerPasswordUpdatedMail confirmation as the public reset flow.',
+        description: 'Step 2 of the authenticated "change password" flow — pass the token from POST /api/marketplace/store/settings/security/current-password. Sends the same SellerPasswordUpdatedMail confirmation as the public reset flow.',
         security: [['sellerAuth' => []]],
         tags: ['Seller Security'],
         requestBody: new OA\RequestBody(

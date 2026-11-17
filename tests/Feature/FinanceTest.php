@@ -60,16 +60,16 @@ test('a seller sees payout totals and one payout line', function () {
         'collection' => false,
     ]);
 
-    $this->postJson('/api/seller/stripe/payouts')
+    $this->postJson('/api/marketplace/stripe/payouts')
         ->assertOk()
         ->assertJsonPath('error', 'You stripe account is not yet activated.');
 
-    $this->getJson('/api/seller/finance')
+    $this->getJson('/api/marketplace/finance')
         ->assertOk()
         ->assertJsonPath('deposited', 50)
         ->assertJsonPath('upcoming', 20);
 
-    $this->postJson('/api/seller/finance/'.$upcoming->uuid)
+    $this->postJson('/api/marketplace/finance/'.$upcoming->uuid)
         ->assertOk()
         ->assertJsonPath('data.uuid', (string) $upcoming->uuid)
         ->assertJsonPath('data.details.0.order', '4004');
@@ -90,7 +90,7 @@ test('a seller can email a finance payout export', function () {
         'payout_date' => now(),
     ]);
 
-    $this->postJson('/api/seller/finance/export', [
+    $this->postJson('/api/marketplace/finance/export', [
         'payouts' => [(string) $payout->uuid],
     ])->assertOk()
         ->assertJsonPath('message', 'Finance export CSV file is being prepared. You will receive an email when it is ready.');
