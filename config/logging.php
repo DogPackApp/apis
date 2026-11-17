@@ -127,6 +127,13 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'shopify' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/shopify.log'),
+            'level' => 'debug',
+            'days' => 2,
+        ],
+
     ],
 
 ];

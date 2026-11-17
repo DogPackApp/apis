@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\User;
+use App\Models\Seller\Seller;
 
 return [
 
@@ -42,6 +42,11 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'marketplace' => [
+            'driver' => 'passport',
+            'provider' => 'sellers',  // New provider for sellers
+            'hash' => false,
+        ],
     ],
 
     /*
@@ -62,15 +67,10 @@ return [
     */
 
     'providers' => [
-        'users' => [
+        'sellers' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'model' => Seller::class,
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
     ],
 
     /*
@@ -96,6 +96,12 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+        'sellers' => [
+            'provider' => 'sellers',
+            'table' => 'password_resets',
             'expire' => 60,
             'throttle' => 60,
         ],

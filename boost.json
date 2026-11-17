@@ -11,6 +11,7 @@
     "skills": [
         "infer-conventions",
         "laravel-best-practices",
+        "passport-development",
         "pest-testing",
         "tailwindcss-development"
     ]
