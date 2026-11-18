@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerLoginOTPController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/login/otp',
+        path: '/api/marketplace/seller/login/otp',
         summary: 'Complete a 2FA login by submitting the emailed OTP',
         tags: ['Seller Auth'],
         requestBody: new OA\RequestBody(

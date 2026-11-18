@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerProfileController extends Controller
 {
     #[OA\Get(
-        path: '/api/seller/me',
+        path: '/api/marketplace/seller/me',
         summary: "Get the authenticated seller's profile",
         description: 'Eager-loads the store relation, so `data.store` is included (null if the seller has not created a store yet).',
         security: [['sellerAuth' => []]],
@@ -28,7 +28,7 @@ class SellerProfileController extends Controller
     )]
     public function __invoke(Request $request): JsonResponse
     {
-        return SellerResource::make($request->user()->load('store'))
+        return SellerResource::make($request->user()->load(['store.country', 'store.storeInfo']))
             ->response()
             ->setStatusCode(Response::HTTP_OK);
     }

@@ -1,5 +1,24 @@
 <?php
 
+$decodeKey = static function (string $environmentVariable): ?string {
+    $encodedKey = env($environmentVariable);
+
+    if ($encodedKey === null || $encodedKey === '') {
+        return null;
+    }
+
+    $decodedKey = base64_decode($encodedKey, true);
+
+    if ($decodedKey === false) {
+        throw new RuntimeException(sprintf(
+            'The %s environment variable must contain a valid Base64-encoded Passport key.',
+            $environmentVariable,
+        ));
+    }
+
+    return $decodedKey;
+};
+
 return [
 
     /*
@@ -23,14 +42,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | Passport uses encryption keys while generating secure access tokens for
-    | your application. By default, the keys are stored as local files but
-    | can be set via environment variables when that is more convenient.
+    | your application. Keys are Base64-encoded PEM in the environment.
+    | When either value is empty, Passport falls back to storage/oauth-*.key.
     |
     */
 
-    'private_key' => env('PASSPORT_PRIVATE_KEY'),
+    'private_key' => $decodeKey('PASSPORT_PRIVATE_KEY_BASE64'),
 
-    'public_key' => env('PASSPORT_PUBLIC_KEY'),
+    'public_key' => $decodeKey('PASSPORT_PUBLIC_KEY_BASE64'),
 
     /*
     |--------------------------------------------------------------------------

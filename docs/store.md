@@ -79,7 +79,7 @@ Inverse of `Seller::store()` — see [seller.md](./seller.md).
 
 `Store` does not convert its own timestamps — `created_at`/`updated_at` are stored and read as plain UTC Carbon instances. Timezone-aware formatting is applied only where it's presented, in `App\Http\Resources\Store\StoreResource`, via `App\Support\Timezone::convert($value, $store->timezone)`. This is deliberate: earlier implementations resolved a "current store" through a container-bound singleton and applied conversion globally to every timestamped model, which broke under queued jobs and couldn't support more than one store per request. The `Store` model itself stays timezone-agnostic; only the resource layer knows about display formatting.
 
-## HTTP surface (`routes/api.php`, prefix `/api/seller`, all `auth:marketplace`)
+## HTTP surface (`routes/seller/store.php`, prefix `/api/marketplace`, all `auth:marketplace`)
 
 | Method | Path | Controller | Notes |
 |---|---|---|---|
@@ -110,7 +110,7 @@ Request validation: `App\Http\Requests\Store\StoreCreateRequest` (create) and `S
 
 `created_at`/`updated_at` are formatted in the store's own `timezone` (falling back to UTC if unset).
 
-The store is also embedded in the seller's own profile response (`GET /api/seller/me`), which eager-loads the relation: `"data": { ..., "store": { ...StoreResource fields... } | null }`.
+The store is also embedded in the seller's own profile response (`GET /api/marketplace/seller/me`), which eager-loads the relation: `"data": { ..., "store": { ...StoreResource fields... } | null }`.
 
 ## Onboarding relationship
 

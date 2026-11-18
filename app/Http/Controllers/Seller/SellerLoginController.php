@@ -7,6 +7,7 @@ use App\Http\Requests\Seller\SellerLoginRequest;
 use App\Http\Resources\Seller\SellerResource;
 use App\Mail\SellerOTPMail;
 use App\Models\Seller\Seller;
+use App\Models\Store\Store;
 use App\Services\AuthFailureNotifier;
 use App\Services\OTPService;
 use Illuminate\Http\JsonResponse;
@@ -18,9 +19,9 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerLoginController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/login',
+        path: '/api/marketplace/seller/login',
         summary: 'Log a seller in with email and password',
-        description: 'Returns an access token immediately, unless the seller has 2FA enabled — in that case an OTP is emailed and a 202 is returned instead, and the token is issued by POST /api/seller/login/otp.',
+        description: 'Returns an access token immediately, unless the seller has 2FA enabled — in that case an OTP is emailed and a 202 is returned instead, and the token is issued by POST /api/marketplace/seller/login/otp.',
         tags: ['Seller Auth'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -52,7 +53,7 @@ class SellerLoginController extends Controller
             ),
             new OA\Response(
                 response: 401,
-                description: 'Invalid credentials',
+                description: 'Invalid credentials, or the seller\'s store is inactive/blocked',
                 content: new OA\JsonContent(
                     properties: [new OA\Property(property: 'message', type: 'string', example: 'Invalid credentials')]
                 )
@@ -79,12 +80,20 @@ class SellerLoginController extends Controller
                 return response()->json(['message' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
             }
 
+            $seller->load('store');
+
+            if ($seller->store && $seller->store->states === Store::STATES_INACTIVE) {
+                return response()->json([
+                    'message' => 'Your account is blocked, please contact '.config('services.DOGPACK_EMAIL').'.',
+                ], Response::HTTP_UNAUTHORIZED);
+            }
+
             if ($seller->is2FAEnabled()) {
                 $otpService = (new OTPService($seller))
                     ->invalidate()
                     ->generate();
 
-                Mail::to($seller->email)->send(new SellerOTPMail($seller, $otpService->otp));
+                Mail::to($seller->email)->queue(new SellerOTPMail($seller, $otpService->otp));
 
                 return response()->json(['message' => 'OTP sent to your email.'], Response::HTTP_ACCEPTED);
             }

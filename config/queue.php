@@ -73,6 +73,15 @@ return [
             'after_commit' => false,
         ],
 
+        'elasticsearch' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => env('QUEUE_ELASTICSEARCH', 'elasticsearch'),
+            'retry_after' => 1260,
+            'after_commit' => false,
+        ],
+
         'deferred' => [
             'driver' => 'deferred',
         ],
@@ -118,7 +127,10 @@ return [
     */
 
     'low' => env('QUEUE_LOW', 'mkt-low'),
+    'medium' => env('QUEUE_MEDIUM', 'mkt-medium'),
     'high' => env('QUEUE_HIGH', 'mkt-high'),
+    'translations' => env('QUEUE_TRANSLATIONS', 'translations'),
+    'elasticsearch' => env('QUEUE_ELASTICSEARCH', 'elasticsearch'),
 
     /*
     |--------------------------------------------------------------------------

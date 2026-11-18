@@ -34,6 +34,7 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
         'seller_auth_webhook' => env('SLACK_SELLER_AUTH_WEBHOOK'),
+        'webhook_url' => env('SLACK_ORDER_PLACE_FAILED_WEBHOOK', ''),
     ],
 
     'google' => [
@@ -41,11 +42,56 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
     ],
 
+    'marketplace_stripe' => [
+        'key' => env('MARKETPLACE_STRIPE_KEY'),
+        'public_key' => env('MARKETPLACE_STRIPE_PUBLIC_KEY'),
+        'wb_secret' => env('MARKETPLACE_STRIPE_WS_SECRET'),
+        'wb_secret_subscription' => env('MARKETPLACE_STRIPE_WS_SECRET_SUBSCRIPTION'),
+        'wb_stripe_payment_capture' => env('MARKETPLACE_STRIPE_WS_SECRET_PAYMENT_CAPTURE'),
+    ],
+
+    'marketplace_stripe_uk' => [
+        'key' => env('MARKETPLACE_STRIPE_UK_KEY'),
+        'public_key' => env('MARKETPLACE_STRIPE_UK_PUBLIC_KEY'),
+        'wb_secret' => env('MARKETPLACE_STRIPE_UK_WS_SECRET'),
+        'wb_secret_subscription' => env('MARKETPLACE_STRIPE_UK_WS_SECRET_SUBSCRIPTION'),
+        'wb_stripe_payment_capture' => env('MARKETPLACE_STRIPE_UK_WS_SECRET_PAYMENT_CAPTURE'),
+    ],
+
     'marketplace_fe_url' => env('MARKETPLACE_FE_URL'),
-    'marketplace_media' => env('MARKETPLACE_CLOUDFRONT_URL'),
+    'marketplace_media' => env('MARKETPLACE_CLOUDFRONT_URL', 'https://d10gbhi8lknmjk.cloudfront.net/'),
+    'marketplace_images_production' => env('MARKETPLACE_CLOUDFRONT_URL_PROD', 'https://d2n17nl8nzq4od.cloudfront.net/'),
     'website_url' => env('WEBSITE_URL'),
     'website_assets_url' => env('WEBSITE_ASSETS_URL'),
     'support_phone' => env('SUPPORT_PHONE'),
     'DOGPACK_EMAIL' => env('DOGPACK_EMAIL'),
+    'marketplace_google_api' => env('MARKETPLACE_GOOGLE_API'),
+
+    'google_translate' => [
+        'api_key' => env('GOOGLE_TRANSLATE_API_KEY'),
+    ],
+    'marketplace_easypost_api' => env('EASYPOST_API_KEY'),
+    'open_exchange_api_key' => env('OPEN_EXCHANGE_API_KEY'),
+
+    'cron_server' => env('CRON_SERVER'),
+
+    'shopify_hmac_token' => env('SHOPIFY_HMAC_TOKEN'),
+
+    'avalara' => [
+        'environment' => env('AVALARA_ENVIRONMENT'),
+        'accountId' => env('AVALARA_ACCOUNT_ID'),
+        'companyId' => env('AVALARA_COMPANY_ID'),
+        'licenseKey' => env('AVALARA_LICENSE_KEY'),
+        'code' => env('AVALARA_COMPANY_CODE'),
+        'machine' => env('AVALARA_MACHINE'),
+        'email' => env('AVALARA_EMAIL'),
+        'password' => env('AVALARA_PASSWORD'),
+    ],
+
+    'open_ai' => [
+        'ai_product_description_key' => env('OPEN_AI_PRODUCT_DESCRIPTION_KEY'),
+        'category_key' => env('OPEN_AI_PRODUCT_CATEGORY_KEY'),
+        'facet_classification_key' => env('OPEN_AI_KEY_FACET_CLASSIFICATION'),
+    ],
 
 ];

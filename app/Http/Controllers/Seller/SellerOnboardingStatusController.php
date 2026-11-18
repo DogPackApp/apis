@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerOnboardingStatusController extends Controller
 {
     #[OA\Get(
-        path: '/api/seller/onboarding/status',
+        path: '/api/marketplace/seller/onboarding/status',
         summary: "Get the authenticated seller's onboarding progress",
         security: [['sellerAuth' => []]],
         tags: ['Onboarding'],

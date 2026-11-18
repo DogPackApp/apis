@@ -15,7 +15,7 @@ beforeEach(function () {
 });
 
 test('forgot password requires an existing seller email', function () {
-    $this->postJson('/api/seller/password/forgot', [
+    $this->postJson('/api/marketplace/seller/password/forgot', [
         'email' => 'missing@example.com',
     ])->assertUnprocessable();
 });
@@ -27,7 +27,7 @@ test('forgot password queues a reset email', function () {
         'email' => 'seller@example.com',
     ]);
 
-    $this->postJson('/api/seller/password/forgot', [
+    $this->postJson('/api/marketplace/seller/password/forgot', [
         'email' => $seller->email,
     ])->assertOk()
         ->assertJsonPath('message', 'Reset link sent to your email.');
@@ -44,7 +44,7 @@ test('seller can reset their password and receives a confirmation email', functi
 
     $token = Password::broker('sellers')->createToken($seller);
 
-    $this->postJson('/api/seller/password/reset', [
+    $this->postJson('/api/marketplace/seller/password/reset', [
         'email' => $seller->email,
         'token' => $token,
         'password' => 'new-password',
@@ -59,7 +59,7 @@ test('seller can reset their password and receives a confirmation email', functi
 test('password reset rejects an invalid token', function () {
     $seller = Seller::factory()->verified()->create();
 
-    $this->postJson('/api/seller/password/reset', [
+    $this->postJson('/api/marketplace/seller/password/reset', [
         'email' => $seller->email,
         'token' => 'invalid-token',
         'password' => 'new-password',

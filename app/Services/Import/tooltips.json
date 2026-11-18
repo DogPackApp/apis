@@ -1,0 +1,98 @@
+{
+  "product_id": {
+    "INVALID": "Product ID is invalid or does not match the required format.",
+    "EMPTY": "Product ID is required for all products and variants."
+  },
+  "product_title": {
+    "INVALID": "Product title contains unsupported characters or exceeds the maximum length of 255 characters.",
+    "EMPTY": "Product title cannot be empty."
+  },
+  "product_type": {
+    "INVALID": "Product type is not recognized or is not supported. \"Physical\" or \"Digital\" are supported entries.",
+    "EMPTY": "Product type is required."
+  },
+  "product_media_urls": {
+    "INVALID": "Media URLs must be valid links formatted as a CSV list.",
+    "EMPTY": "At least one media URL is required."
+  },
+  "product_description_html": {
+    "INVALID": "Description contains invalid text or unsupported HTML.",
+    "EMPTY": "Product description cannot be empty."
+  },
+  "variations": {
+    "INVALID": "Variations must be either 'Yes' or 'No'.",
+    "EMPTY": "Variations field is required."
+  },
+  "hide_variant": {
+    "INVALID": "Hide Variant must be either 'Yes' or 'No'.",
+    "EMPTY": "Hide Variant field is required."
+  },
+  "option1_name": {
+    "INVALID": "Option 1 name contains unsupported characters or is not unique.",
+    "EMPTY": "Option 1 name is required when variations are enabled."
+  },
+  "option1_value": {
+    "INVALID": "Option 1 value must be valid.",
+    "EMPTY": "Option 1 value cannot be empty when option 1 name is provided."
+  },
+  "option2_name": {
+    "INVALID": "Option 2 name contains unsupported characters or is not unique.",
+    "EMPTY": "Option 2 name is required when Option 2 values are provided."
+  },
+  "option2_value": {
+    "INVALID": "Option 2 value must be valid.",
+    "EMPTY": "Option 2 value cannot be empty when option 2 name is provided."
+  },
+  "option3_name": {
+    "INVALID": "Option 3 name contains unsupported characters or is not unique.",
+    "EMPTY": "Option 3 name is required when Option 3 values are provided."
+  },
+  "option3_value": {
+    "INVALID": "Option 3 value must be valid.",
+    "EMPTY": "Option 3 value cannot be empty when option 3 name is provided."
+  },
+  "variant_image": {
+    "INVALID": "Variant image must be a valid URL.",
+    "EMPTY": "Variant image is required when specifying a variant-specific image."
+  },
+  "price": {
+    "INVALID": "Price must be a valid number greater than 0.",
+    "EMPTY": "Price is required."
+  },
+  "quantity": {
+    "INVALID": "Quantity must be a whole number that meets stock requirements.",
+    "EMPTY": "Quantity is required when overselling is disabled."
+  },
+  "continue_selling_when_out_of_stock": {
+    "INVALID": "Value must be either 'Yes' or 'No'.",
+    "EMPTY": "This field is required."
+  },
+  "sku": {
+    "INVALID": "SKU must be unique and contain only valid characters.",
+    "EMPTY": "SKU is required."
+  },
+  "weight": {
+    "INVALID": "Weight must be a valid number greater than 0.",
+    "EMPTY": "Weight is required."
+  },
+  "unit": {
+    "INVALID": "Unit must be one of: KG, G, LB, OZ.",
+    "EMPTY": "Unit is required."
+  },
+  "country_of_origin": {
+    "INVALID": "Country of origin must be a valid two-letter ISO country code.",
+    "EMPTY": "Country of origin is required."
+  },
+  "sections": {
+    "INVALID": "Sections must be valid comma-separated values.",
+    "EMPTY": "At least one section is required."
+  },
+  "tags": {
+    "INVALID": "Tags must be valid comma-separated values.",
+    "EMPTY": "At least one tag is required."
+  },
+  "product_status": {
+    "INVALID": "Product status must be ACTIVE, DRAFT, or ARCHIVED.",
+    "EMPTY": "Product status is required."
+  }
+}

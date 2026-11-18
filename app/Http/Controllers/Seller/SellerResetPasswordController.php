@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SellerResetPasswordController extends Controller
 {
     #[OA\Post(
-        path: '/api/seller/password/reset',
+        path: '/api/marketplace/seller/password/reset',
         summary: 'Reset a password using a reset-link token',
         description: 'On success, also sends a SellerPasswordUpdatedMail confirmation email.',
         tags: ['Seller Auth'],

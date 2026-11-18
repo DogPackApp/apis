@@ -2,12 +2,15 @@
 
 namespace App\Models\Seller;
 
+use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class OnboardingStatus extends Model
 {
+    use ConvertTimeZone;
+
     public $timestamps = false;
 
     protected $fillable = [
