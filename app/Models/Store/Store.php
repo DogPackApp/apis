@@ -125,6 +125,11 @@ class Store extends Model
         return $this->belongsTo(Language::class, 'language_id');
     }
 
+    public function zones(): HasMany
+    {
+        return $this->hasMany(ShippingZone::class, 'store_id');
+    }
+
     public function storeInfo(): HasOne
     {
         return $this->hasOne(StoreInfo::class, 'store_id');

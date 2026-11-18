@@ -4,15 +4,21 @@ namespace App\Models\Order;
 
 use App\Models\Concerns\ConvertTimeZone;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 class Customers extends Model
 {
     use ConvertTimeZone;
 
+    public const PURCHASE_STATUS_ALLOWED = 'allowed';
+
+    public const PURCHASE_STATUS_BLOCKED = 'blocked';
+
     protected $fillable = [
         'uuid',
         'store_order_id',
+        'purchase_status',
         'name',
         'email',
         'phone',
@@ -32,6 +38,11 @@ class Customers extends Model
         static::creating(function ($seller) {
             $seller->uuid = Str::uuid();
         });
+    }
+
+    public function storeOrder(): BelongsTo
+    {
+        return $this->belongsTo(StoreOrder::class);
     }
 
     /**

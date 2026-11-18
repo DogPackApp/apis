@@ -5,6 +5,7 @@ namespace App\Models\Product;
 use App\Models\Order\MarketplaceSubscription;
 use App\Models\Store\Policy;
 use App\Models\Store\Section;
+use App\Models\Store\ShippingZoneRate;
 use App\Models\Store\Store;
 use App\Models\SubscribeSave\ItemSubscribeSaveSetting;
 use App\Services\Product\ProductListBatch;
@@ -116,6 +117,11 @@ class Item extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function shippingZoneRates(): BelongsToMany
+    {
+        return $this->belongsToMany(ShippingZoneRate::class, 'shipping_zone_rate_items', 'item_id', 'shipping_zone_rate_id');
     }
 
     public function category(): BelongsTo

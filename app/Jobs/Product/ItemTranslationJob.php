@@ -59,11 +59,18 @@ class ItemTranslationJob implements ShouldBeUnique, ShouldQueue
                 default:
                     throw new \InvalidArgumentException('Invalid action: '.$this->action);
             }
+        } catch (\InvalidArgumentException $e) {
+            Log::error('Failed to '.$this->action.' items: '.$e->getMessage(), [
+                'entries' => $this->entries,
+                'action' => $this->action,
+            ]);
         } catch (\Exception $e) {
             Log::error('Failed to '.$this->action.' items: '.$e->getMessage(), [
                 'entries' => $this->entries,
                 'action' => $this->action,
             ]);
+
+            throw $e;
         }
     }
 }

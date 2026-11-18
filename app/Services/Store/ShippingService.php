@@ -9,6 +9,7 @@ use App\Models\Store\ShippingStateExclusion;
 use App\Models\Store\ShippingZone;
 use App\Models\Store\ShippingZoneCountry;
 use App\Models\Store\ShippingZoneRate;
+use App\Models\Store\ShippingZoneRateItem;
 use App\Models\Store\Store;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -31,6 +32,14 @@ class ShippingService
             ->get()
             ->pluck('id')
             ->toArray();
+
+        $existingShippingZoneRateIds = ShippingZoneRate::on('mysql_reader')
+            ->whereIn('shipping_zone_id', $existingShippingZones)
+            ->pluck('id');
+
+        ShippingZoneRateItem::query()
+            ->whereIn('shipping_zone_rate_id', $existingShippingZoneRateIds)
+            ->delete();
 
         ShippingZoneRate::query()
             ->whereIn('shipping_zone_id', $existingShippingZones)
@@ -77,7 +86,11 @@ class ShippingService
                     $currency = null;
                 }
 
-                $this->createShippingZoneRate($shippingZone->id, $shippingRate->id ?? null, $currency->id ?? null, $zoneRate);
+                $shippingZoneRate = $this->createShippingZoneRate($shippingZone->id, $shippingRate->id ?? null, $currency->id ?? null, $zoneRate);
+
+                if (($zoneRate['condition_type'] ?? null) === ShippingZoneRate::ZONE_CONDITION_ITEM) {
+                    $shippingZoneRate->items()->attach($zoneRate['item_ids'] ?? []);
+                }
             }
         }
     }

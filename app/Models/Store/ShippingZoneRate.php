@@ -3,8 +3,11 @@
 namespace App\Models\Store;
 
 use App\Models\Misc\Currency;
+use App\Models\Product\Item;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -14,9 +17,12 @@ class ShippingZoneRate extends Model
 
     public const ZONE_CONDITION_PRICE = 'PRICE';
 
+    public const ZONE_CONDITION_ITEM = 'ITEM';
+
     public const ZONE_CONDITION_TYPE = [
         self::ZONE_CONDITION_WEIGHT => 1,
         self::ZONE_CONDITION_PRICE => 2,
+        self::ZONE_CONDITION_ITEM => 3,
     ];
 
     use SoftDeletes;
@@ -51,5 +57,20 @@ class ShippingZoneRate extends Model
     public function shippingRate(): BelongsTo
     {
         return $this->belongsTo(ShippingRate::class);
+    }
+
+    public function shippingZone(): BelongsTo
+    {
+        return $this->belongsTo(ShippingZone::class);
+    }
+
+    public function itemIds(): HasMany
+    {
+        return $this->hasMany(ShippingZoneRateItem::class);
+    }
+
+    public function items(): BelongsToMany
+    {
+        return $this->belongsToMany(Item::class, 'shipping_zone_rate_items', 'shipping_zone_rate_id', 'item_id');
     }
 }
