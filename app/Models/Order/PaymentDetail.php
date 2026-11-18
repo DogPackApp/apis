@@ -15,6 +15,7 @@ class PaymentDetail extends Model
         'payment_id',
         'transaction_id',
         'payment_method',
+        'payment_fingerprint',
         'card',
         'risk_level',
     ];

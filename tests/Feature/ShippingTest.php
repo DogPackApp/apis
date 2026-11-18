@@ -2,6 +2,7 @@
 
 use App\Models\Misc\CountriesNew;
 use App\Models\Misc\Country;
+use App\Models\Product\Item;
 use App\Models\Seller\Seller;
 use App\Models\Store\Packaging;
 use App\Models\Store\ShippingRate;
@@ -198,6 +199,54 @@ test('saving zones and packaging replaces the store shipping setup', function ()
         ->assertJsonPath('data.0.unit', 'IN')
         ->assertJsonPath('data.0.empty_unit', 'LB')
         ->assertJsonPath('data.0.is_default', 1);
+});
+
+test('a product rate is saved against the products in that store', function () {
+    [$seller, $store] = shippingSellerWithStore();
+    (new OnboardingService)->initiateOnboarding($seller);
+    $country = shippingCountry();
+
+    $item = Item::factory()->create([
+        'store_id' => $store->id,
+        'title' => 'Leash',
+        'media_url' => 'uploads/products/leash.webp',
+    ]);
+
+    $rate = new ShippingRate;
+    $rate->name = 'Ground';
+    $rate->description = 'Carrier ground';
+    $rate->save();
+
+    $this->postJson('/api/marketplace/shipping', [
+        'shipping' => [[
+            'name' => 'Domestic',
+            'country' => [$country->id],
+            'shipping_zone_rates' => [[
+                'shipping_type' => 1,
+                'shipping_rates' => ['value' => (string) $rate->uuid],
+                'price' => 8,
+                'condition_type' => 'ITEM',
+                'item_uuids' => [$item->uuid],
+            ]],
+        ]],
+        'packaging' => [[
+            'name' => 'Mailer',
+            'type' => 'BOX',
+            'length' => 10,
+            'width' => 8,
+            'height' => 4,
+            'unit' => 'IN',
+            'empty_weight' => 1,
+            'empty_unit' => 'LB',
+        ]],
+    ])->assertCreated();
+
+    $this->getJson('/api/marketplace/shipping/shipping')
+        ->assertOk()
+        ->assertJsonPath('data.0.shipping_zone_rates.0.condition_type', 'ITEM')
+        ->assertJsonPath('data.0.shipping_zone_rates.0.items.0.uuid', $item->uuid)
+        ->assertJsonPath('data.0.shipping_zone_rates.0.items.0.title', 'Leash')
+        ->assertJsonPath('data.0.shipping_zone_rates.0.items.0.media_url', 'uploads/products/leash.webp');
 });
 
 test('address autocomplete returns the google payload', function () {

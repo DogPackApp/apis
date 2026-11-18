@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Seller\Shipping;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\Store\ClearShippingCacheJob;
 use App\Models\Product\Item;
 use App\Models\Store\Packaging;
 use App\Models\Store\ShippingZone;
 use App\Models\Store\ShippingZoneRate;
+use App\Models\Store\Store;
 use App\Services\Cache\CacheService;
 use App\Services\OnboardingService;
 use App\Services\Store\PackagingService;
@@ -97,6 +99,18 @@ class ShippingPackagingController extends Controller
                 },
             ],
 
+            'shipping.*.shipping_zone_rates.*.item_uuids' => [
+                'required_if:shipping.*.shipping_zone_rates.*.condition_type,ITEM',
+                'nullable',
+                'array',
+                function ($attribute, $value, $fail) {
+                    if (is_array($value) && count($value) !== count(array_unique($value))) {
+                        $fail("The {$attribute} field must not contain duplicate items.");
+                    }
+                },
+            ],
+            'shipping.*.shipping_zone_rates.*.item_uuids.*' => ['required', 'uuid'],
+
             'shipping.*.shipping_zone_rates.*.shipping_rates_custom' => ['nullable', 'required_if:shipping.*.shipping_zone_rates.shipping_rates,custom', 'array'],
             'shipping.*.shipping_zone_rates.*.shipping_rates_custom.name' => ['nullable', 'required_if:shipping.*.shipping_zone_rates.shipping_rates,custom', 'string', 'max:255'],
             'shipping.*.shipping_zone_rates.*.shipping_rates_custom.description' => ['required_if:shipping.*.shipping_zone_rates.shipping_rates,custom', 'string', 'max:500'],
@@ -118,7 +132,11 @@ class ShippingPackagingController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $shipping = $validator->validated()['shipping'];
+        [$shipping, $itemErrors] = $this->resolveItemUuids($validator->validated()['shipping']);
+
+        if ($itemErrors !== []) {
+            return response()->json(['errors' => $itemErrors], 422);
+        }
 
         DB::beginTransaction();
 
@@ -138,6 +156,8 @@ class ShippingPackagingController extends Controller
             DB::commit();
 
             ShippingZone::forgetListCache(auth()->user()->store->id);
+
+            ClearShippingCacheJob::dispatch(auth()->user()->store->id);
         } catch (Exception $e) {
             DB::rollBack();
 
@@ -145,5 +165,55 @@ class ShippingPackagingController extends Controller
         }
 
         return response()->json([], Response::HTTP_CREATED);
+    }
+
+    /**
+     * @return array{0: array, 1: array<string, string[]>}
+     */
+    private function resolveItemUuids(array $shipping): array
+    {
+        $uuids = collect($shipping)
+            ->pluck('shipping_zone_rates.*.item_uuids')
+            ->flatten()
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($uuids->isEmpty()) {
+            return [$shipping, []];
+        }
+
+        $itemIds = Item::on('mysql_reader')
+            ->where('store_id', resolve(Store::class)->id)
+            ->whereIn('uuid', $uuids)
+            ->pluck('id', 'uuid');
+
+        $errors = [];
+
+        foreach ($shipping as $zoneIndex => $zone) {
+            foreach ($zone['shipping_zone_rates'] as $rateIndex => $rate) {
+                if (empty($rate['item_uuids'])) {
+                    continue;
+                }
+
+                $ids = [];
+
+                foreach ($rate['item_uuids'] as $uuidIndex => $uuid) {
+                    if (! isset($itemIds[$uuid])) {
+                        $errors["shipping.{$zoneIndex}.shipping_zone_rates.{$rateIndex}.item_uuids.{$uuidIndex}"]
+                            = ['The selected item is invalid.'];
+
+                        continue;
+                    }
+
+                    $ids[] = $itemIds[$uuid];
+                }
+
+                unset($shipping[$zoneIndex]['shipping_zone_rates'][$rateIndex]['item_uuids']);
+                $shipping[$zoneIndex]['shipping_zone_rates'][$rateIndex]['item_ids'] = $ids;
+            }
+        }
+
+        return [$shipping, $errors];
     }
 }

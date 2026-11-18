@@ -26,6 +26,7 @@ class ShippingZoneRatesResource extends JsonResource
             'weight' => $this->weight,
             'currency' => new MiscResource($this->whenLoaded('currency')),
             'shipping_rate' => new ShippingRatesResource($this->whenLoaded('shippingRate')),
+            'items' => ShippingZoneRateItemResource::collection($this->whenLoaded('items')),
         ];
     }
 }

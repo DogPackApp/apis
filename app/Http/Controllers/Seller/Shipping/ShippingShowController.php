@@ -25,6 +25,7 @@ class ShippingShowController extends Controller
                     'shippingZoneCountry.excludedStates',
                     'shippingZoneRates.currency',
                     'shippingZoneRates.shippingRate',
+                    'shippingZoneRates.items:id,uuid,title,media_url',
                 ])
                 ->where('store_id', $storeId)
                 ->latest()

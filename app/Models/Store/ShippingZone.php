@@ -3,6 +3,7 @@
 namespace App\Models\Store;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
@@ -33,6 +34,11 @@ class ShippingZone extends Model
         }
 
         Cache::forget("store_shipping_{$storeId}.apis");
+    }
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
     }
 
     public function shippingZoneCountry(): HasMany

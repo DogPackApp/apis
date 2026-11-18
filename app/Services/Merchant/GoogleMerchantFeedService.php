@@ -875,6 +875,14 @@ class GoogleMerchantFeedService
         $categoryLabel = $item->category_id ? $this->resolveCategoryLabel((int) $item->category_id) : '';
         $imageLink = $item->media_url ?? '';
 
+        if ($description === '') {
+            $description = $this->buildFallbackDescription(
+                $this->normalizeCase((string) $item->title),
+                (string) ($item->store->name ?? ''),
+                $categoryLabel
+            );
+        }
+
         $discountPct = $this->resolveDiscount($item);
 
         $variantData = $this->pickVariantForFeed($item);
@@ -1271,14 +1279,64 @@ class GoogleMerchantFeedService
             return '';
         }
 
-        $text = preg_replace('/<\s*br\s*\/?\s*>/i', ' ', $description) ?? $description;
+        $text = $description;
+        for ($i = 0; $i < 2; $i++) {
+            $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($decoded === $text) {
+                break;
+            }
+            $text = $decoded;
+        }
+
+        $text = preg_replace('/<\s*br\s*\/?\s*>/i', ' ', $text) ?? $text;
         $text = preg_replace('/<\/?\s*(p|div|li|h[1-6]|tr)\b[^>]*>/i', ' ', $text) ?? $text;
         $text = strip_tags($text);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
         $text = trim($text);
+        $text = $this->trimWrappingQuotes($text);
 
         return $this->truncateAtWord($this->normalizeCase($text), self::DESCRIPTION_LIMIT);
+    }
+
+    /**
+     * Remove a quote pair wrapping the whole description ("..." or '...').
+     * Only strips when both ends match, so inch marks like 5" are preserved.
+     */
+    private function trimWrappingQuotes(string $text): string
+    {
+        while (mb_strlen($text) >= 2) {
+            $first = mb_substr($text, 0, 1);
+            $last = mb_substr($text, -1);
+            if (($first !== '"' && $first !== "'") || $first !== $last) {
+                break;
+            }
+            $text = trim(mb_substr($text, 1, mb_strlen($text) - 2));
+        }
+
+        return $text;
+    }
+
+    /**
+     * Description used when the product has none: "{title} by {brand}. {category}."
+     * Parts that are missing are skipped rather than leaving dangling separators.
+     */
+    private function buildFallbackDescription(string $title, string $brand, string $category): string
+    {
+        $title = trim($title);
+        $brand = trim($brand);
+        $category = trim($category);
+
+        if ($title === '') {
+            return '';
+        }
+
+        $text = $brand !== '' ? "{$title} by {$brand}." : "{$title}.";
+        if ($category !== '') {
+            $text .= " {$category}.";
+        }
+
+        return $this->truncateAtWord($text, self::DESCRIPTION_LIMIT);
     }
 
     private function truncateAtWord(string $text, int $limit): string

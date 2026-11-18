@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Order;
 
+use App\Models\Order\Customers;
 use App\Models\Order\StoreOrder;
 use App\Models\Stripe\DisputeStripeLog;
 use App\Notifications\DisputeReceived;
@@ -46,7 +47,7 @@ class ApplyDisputeStatusJob implements ShouldQueue
         $orders = collect();
 
         if ($log->payment_intent_id) {
-            $orders = StoreOrder::with(['store', 'orderBilling'])
+            $orders = StoreOrder::with(['store', 'orderBilling', 'customer'])
                 ->whereHas('paymentDetail', function ($query) use ($log) {
                     $query->where('payment_id', $log->payment_intent_id);
                 })
@@ -62,6 +63,12 @@ class ApplyDisputeStatusJob implements ShouldQueue
                 foreach ($orders as $order) {
                     $order->dispute_status = $log->status;
                     $order->save();
+
+                    if ($order->customer) {
+                        $order->customer->purchase_status = Customers::PURCHASE_STATUS_BLOCKED;
+                        $order->customer->save();
+                    }
+
                     PayoutService::removeUpcomingDisputeLine($order);
                 }
             }
