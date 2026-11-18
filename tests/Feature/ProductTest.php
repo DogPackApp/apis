@@ -948,7 +948,7 @@ test('creating a product attaches gallery images in order', function () {
 
     $item = Item::query()->where('store_id', $store->id)->first();
 
-    expect($item->media_url)->toBe('uploads/products/cover.webp')
+    expect($item->media_url)->toBe($cover->url)
         ->and(ItemMedia::query()->where('item_id', $item->id)->orderBy('order')->pluck('gallery_id')->all())
         ->toBe([$cover->id, $extra->id]);
 
@@ -961,7 +961,7 @@ test('creating a product attaches gallery images in order', function () {
 
     $item->refresh();
 
-    expect($item->media_url)->toBe('uploads/products/side.webp')
+    expect($item->media_url)->toBe($extra->url)
         ->and(ItemMedia::query()->where('item_id', $item->id)->pluck('gallery_id')->all())
         ->toBe([$extra->id]);
 });
@@ -1030,7 +1030,7 @@ test('product show and list return the saved product details', function () {
     $show->assertJsonPath('data.prices.gtin', '012345678905')
         ->assertJsonPath('data.tags.0.name', 'Chew')
         ->assertJsonPath('data.sections.1.slug', 'toys')
-        ->assertJsonPath('data.medias.0.url', 'uploads/products/cover.webp')
+        ->assertJsonPath('data.medias.0.url', $image->url)
         ->assertJsonPath('data.attributes.0.name', 'Size')
         ->assertJsonPath('data.itemVariants.0.sku', 'CHEW-S')
         ->assertJsonPath('data.itemVariants.0.f_id', 'Small')

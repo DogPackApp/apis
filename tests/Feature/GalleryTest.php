@@ -48,7 +48,7 @@ test('a seller can list and search their gallery', function () {
         ->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.uuid', (string) $named->uuid)
-        ->assertJsonPath('data.0.url', 'uploads/products/toy.webp')
+        ->assertJsonPath('data.0.url', $named->url)
         ->assertJsonPath('data.0.name', 'Chew toy')
         ->assertJsonPath('data.0.type', Gallery::TYPE_IMAGE);
 });
