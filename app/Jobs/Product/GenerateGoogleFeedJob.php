@@ -4,24 +4,29 @@ namespace App\Jobs\Product;
 
 use App\Services\Merchant\GoogleMerchantFeedService;
 use App\Services\Merchant\MarketplaceFeedConfig;
-use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class GenerateGoogleFeedJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 1;
+
+    public int $timeout = 1200;
 
     protected string $countryCode;
 
     public function __construct(string $countryCode = 'CA')
     {
         $this->countryCode = strtoupper($countryCode);
-        $this->onQueue('mkt-low');
+        $this->onConnection(config('queue.elasticsearch'));
+        $this->onQueue(config('queue.elasticsearch'));
     }
 
     public function handle(GoogleMerchantFeedService $service): void
@@ -48,8 +53,10 @@ class GenerateGoogleFeedJob implements ShouldQueue
             } else {
                 Log::warning("AwinFeedJob [{$this->countryCode}]: {$result['awin']['message']}");
             }
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error("GoogleFeedJob [{$this->countryCode}]: ".$e->getMessage());
+
+            throw $e;
         }
     }
 }
