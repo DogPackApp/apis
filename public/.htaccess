@@ -14,7 +14,10 @@
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # Redirect Trailing Slashes If Not A Folder...
+    # API paths are left to Laravel: a 301 from Apache carries no CORS headers, and browsers
+    # refuse to follow a redirect on a preflight, so /api/.../ calls fail with a CORS error.
     RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/api/
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
