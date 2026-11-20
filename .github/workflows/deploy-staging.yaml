@@ -1,8 +1,8 @@
-name: Marketplace-API-STG Pipeline
+name: Marketplace-API-STAGE Pipeline
 
 on:
   push:
-    branches: [ staging ]
+    branches: [features/aws-stage-restructuring]
   workflow_dispatch:
 
 concurrency:
@@ -11,8 +11,9 @@ concurrency:
 
 jobs:
   build-and-upload:
-    runs-on: [ marketplace-api-stg ]
-    environment: staging
+    runs-on: [ gh-marketplace-api-stage ]
+    environment: stage
+    timeout-minutes: 45
 
     steps:
 
@@ -48,7 +49,7 @@ jobs:
       # ============================================================
       - name: Create .env file
         env:
-          ENV_JSON: ${{ secrets.ENV_STAGING }}
+          ENV_JSON: ${{ secrets.ENV_STAGE }}
         run: |
           echo "$ENV_JSON" > config.json
 
@@ -132,15 +133,15 @@ jobs:
           mkdir -p deploy
 
           aws s3 cp \
-            s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/appspec.yml \
+            s3://${{ secrets.S3_BUCKET_STAGE }}/code-deploy/marketplace-api/appspec.yml \
             deploy/appspec.yml
 
           aws s3 cp \
-            s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/beforeInstall \
+            s3://${{ secrets.S3_BUCKET_STAGE }}/code-deploy/marketplace-api/beforeInstall \
             deploy/beforeInstall
 
           aws s3 cp \
-            s3://${{ secrets.S3_BUCKET_staging }}/binaries/staging/marketplace-api-stg/applicationStart \
+            s3://${{ secrets.S3_BUCKET_STAGE }}/code-deploy/marketplace-api/applicationStart \
             deploy/applicationStart
 
           chmod +x deploy/beforeInstall
@@ -180,7 +181,7 @@ jobs:
         run: |
           aws s3 cp \
             "${{ steps.artifact_name.outputs.unique_name }}.zip" \
-            "s3://${{ secrets.S3_BUCKET_staging }}/staging/marketplace-api-stg/${{ steps.artifact_name.outputs.unique_name }}.zip"
+            "s3://${{ secrets.S3_BUCKET_STAGE }}/stage/marketplace-api/${{ steps.artifact_name.outputs.unique_name }}.zip"
 
           echo "Artifact uploaded to S3"
 
@@ -191,11 +192,11 @@ jobs:
         id: deploy
         run: |
           DEPLOYMENT_ID=$(aws deploy create-deployment \
-            --application-name marketplace-api-stg \
-            --deployment-group-name marketplace-api-stg-dg \
+            --application-name dogpack-stage-use2-marketplace-api \
+            --deployment-group-name dogpack-stage-use2-marketplace-api-dg \
             --deployment-config-name CodeDeployDefault.AllAtOnce \
-            --s3-location bucket=${{ secrets.S3_BUCKET_staging }},key=staging/marketplace-api-stg/${{ steps.artifact_name.outputs.unique_name }}.zip,bundleType=zip \
-            --region us-east-1 \
+            --s3-location bucket=${{ secrets.S3_BUCKET_STAGE }},key=stage/marketplace-api/${{ steps.artifact_name.outputs.unique_name }}.zip,bundleType=zip \
+            --region us-east-2 \
             --query 'deploymentId' \
             --output text)
 
@@ -212,7 +213,7 @@ jobs:
 
           aws deploy wait deployment-successful \
             --deployment-id "${{ steps.deploy.outputs.deployment_id }}" \
-            --region us-east-1
+            --region us-east-2
 
           echo "Deployment completed successfully"
 
